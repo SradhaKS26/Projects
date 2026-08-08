@@ -1,0 +1,11 @@
+.subtitle {
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: -0.5rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}

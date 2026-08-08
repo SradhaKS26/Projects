@@ -1,0 +1,21 @@
+<section>
+  <h1>Dashboard</h1>
+  <p class="subtitle">Phase 1 foundation shell. Metrics arrive in later phases.</p>
+
+  <div class="cards">
+    <mat-card>
+      <mat-card-title>Signed in</mat-card-title>
+      <mat-card-content>
+        <p>{{ auth.user()?.email }}</p>
+        <p>Roles: {{ auth.user()?.roles?.join(', ') }}</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card>
+      <mat-card-title>MVP focus</mat-card-title>
+      <mat-card-content>
+        Authentication, RBAC, and admin navigation are wired. Service and request management come next.
+      </mat-card-content>
+    </mat-card>
+  </div>
+</section>

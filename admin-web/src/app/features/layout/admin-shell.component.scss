@@ -1,0 +1,31 @@
+.shell {
+  min-height: 100vh;
+}
+
+.sidenav {
+  width: 260px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 1.25rem 1rem 0.75rem;
+}
+
+.active {
+  background: rgba(25, 118, 210, 0.08);
+}
+
+.spacer {
+  flex: 1;
+}
+
+.user {
+  margin-right: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.content {
+  padding: 1.5rem;
+}
