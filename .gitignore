@@ -1,0 +1,47 @@
+# .NET
+**/bin/
+**/obj/
+**/*.user
+**/*.suo
+**/TestResults/
+**/.vs/
+
+# Node / Angular
+**/node_modules/
+**/dist/
+**/.angular/
+npm-debug.log*
+yarn-error.log*
+
+# Flutter
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/build/
+mobile/.pub-cache/
+mobile/.pub/
+mobile/**/Generated.xcconfig
+mobile/**/flutter_export_environment.sh
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.swp
+*.log
+
+# Secrets / local overrides
+**/appsettings.*.local.json
+.env
+.env.*
+!.env.example
+
+# Coverage
+coverage/
+lcov.info
+
+# Flutter IDE
+mobile/.idea/
+**/*.iml
