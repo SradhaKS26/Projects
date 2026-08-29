@@ -42,34 +42,90 @@ public static class DbSeeder
 
         var adminEmail = config["Seed:AdminEmail"] ?? "admin@servicemanagement.local";
         var adminPassword = config["Seed:AdminPassword"] ?? "ChangeMe!Admin123";
+        await EnsureUserAsync(
+            userManager,
+            logger,
+            email: adminEmail,
+            password: adminPassword,
+            firstName: "Platform",
+            lastName: "Admin",
+            role: Roles.Administrator);
 
-        var admin = await userManager.FindByEmailAsync(adminEmail);
-        if (admin is null)
+        var customerEmail = config["Seed:CustomerEmail"] ?? "customer@test.local";
+        var customerPassword = config["Seed:CustomerPassword"] ?? "Customer!123";
+        await EnsureUserAsync(
+            userManager,
+            logger,
+            email: customerEmail,
+            password: customerPassword,
+            firstName: "Sara",
+            lastName: "Customer",
+            role: Roles.CommonUser);
+
+        var providerEmail = config["Seed:ProviderEmail"] ?? "provider@test.local";
+        var providerPassword = config["Seed:ProviderPassword"] ?? "Provider!123";
+        var provider = await EnsureUserAsync(
+            userManager,
+            logger,
+            email: providerEmail,
+            password: providerPassword,
+            firstName: "John",
+            lastName: "Provider",
+            role: Roles.ServiceProvider);
+
+        if (provider is not null &&
+            !await db.ServiceProviderProfiles.AnyAsync(p => p.UserId == provider.Id))
         {
-            admin = new ApplicationUser
+            db.ServiceProviderProfiles.Add(new ServiceProviderProfile
             {
-                Id = Guid.NewGuid(),
-                UserName = adminEmail,
-                Email = adminEmail,
-                FirstName = "Platform",
-                LastName = "Admin",
-                EmailConfirmed = true,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            var createResult = await userManager.CreateAsync(admin, adminPassword);
-            if (!createResult.Succeeded)
-            {
-                logger.LogError("Failed to create seed admin: {Errors}",
-                    string.Join("; ", createResult.Errors.Select(e => e.Description)));
-            }
-            else
-            {
-                await userManager.AddToRoleAsync(admin, Roles.Administrator);
-                logger.LogInformation("Seeded administrator account {Email}", adminEmail);
-            }
+                UserId = provider.Id,
+                AvailabilityStatus = Domain.Enums.AvailabilityStatus.Available,
+                IsActive = true
+            });
+            await db.SaveChangesAsync();
         }
+    }
+
+    private static async Task<ApplicationUser?> EnsureUserAsync(
+        UserManager<ApplicationUser> userManager,
+        ILogger logger,
+        string email,
+        string password,
+        string firstName,
+        string lastName,
+        string role)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user is not null)
+        {
+            return user;
+        }
+
+        user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            UserName = email,
+            Email = email,
+            FirstName = firstName,
+            LastName = lastName,
+            EmailConfirmed = true,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        var createResult = await userManager.CreateAsync(user, password);
+        if (!createResult.Succeeded)
+        {
+            logger.LogError(
+                "Failed to create seed user {Email}: {Errors}",
+                email,
+                string.Join("; ", createResult.Errors.Select(e => e.Description)));
+            return null;
+        }
+
+        await userManager.AddToRoleAsync(user, role);
+        logger.LogInformation("Seeded {Role} account {Email}", role, email);
+        return user;
     }
 
     private static async Task EnsureRoleAsync(
