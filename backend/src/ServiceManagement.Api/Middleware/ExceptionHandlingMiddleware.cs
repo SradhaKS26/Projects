@@ -67,6 +67,14 @@ public class ExceptionHandlingMiddleware
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = statusCode;
 
+        // Belt-and-suspenders: ensure browsers can read API error bodies cross-origin.
+        var origin = context.Request.Headers.Origin.ToString();
+        if (!string.IsNullOrWhiteSpace(origin) && !context.Response.Headers.ContainsKey("Access-Control-Allow-Origin"))
+        {
+            context.Response.Headers.Append("Access-Control-Allow-Origin", origin);
+            context.Response.Headers.Append("Vary", "Origin");
+        }
+
         var payload = ApiResponse<object>.Fail(message, errors);
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions
         {

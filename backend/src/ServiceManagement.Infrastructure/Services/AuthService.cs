@@ -17,7 +17,6 @@ namespace ServiceManagement.Infrastructure.Services;
 public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
-    private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly AppDbContext _db;
     private readonly IJwtTokenService _jwtTokenService;
@@ -27,7 +26,6 @@ public class AuthService : IAuthService
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
-        SignInManager<ApplicationUser> signInManager,
         RoleManager<ApplicationRole> roleManager,
         AppDbContext db,
         IJwtTokenService jwtTokenService,
@@ -36,7 +34,6 @@ public class AuthService : IAuthService
         IValidator<LoginRequest> loginValidator)
     {
         _userManager = userManager;
-        _signInManager = signInManager;
         _roleManager = roleManager;
         _db = db;
         _jwtTokenService = jwtTokenService;
@@ -100,18 +97,32 @@ public class AuthService : IAuthService
     {
         await _loginValidator.ValidateAndThrowAsync(request, cancellationToken);
 
-        var user = await _userManager.FindByEmailAsync(request.Email);
-        if (user is null || !user.IsActive)
+        var email = request.Email.Trim();
+        var user = await _userManager.FindByEmailAsync(email);
+        if (user is null)
         {
-            throw new UnauthorizedAppException();
+            throw new UnauthorizedAppException("Invalid email or password.");
         }
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, request.Password, lockoutOnFailure: true);
-        if (!result.Succeeded)
+        if (!user.IsActive)
         {
-            throw new UnauthorizedAppException();
+            throw new UnauthorizedAppException("This account is inactive.");
         }
 
+        // Prefer direct password check for API auth (no cookie sign-in side effects).
+        var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+        if (!passwordValid)
+        {
+            await _userManager.AccessFailedAsync(user);
+            throw new UnauthorizedAppException("Invalid email or password.");
+        }
+
+        if (await _userManager.IsLockedOutAsync(user))
+        {
+            throw new UnauthorizedAppException("This account is temporarily locked. Try again later.");
+        }
+
+        await _userManager.ResetAccessFailedCountAsync(user);
         return await IssueTokensAsync(user, cancellationToken);
     }
 

@@ -45,13 +45,22 @@ export class LoginComponent {
     this.error.set(null);
 
     this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: async () => {
         this.loading.set(false);
-        void this.router.navigate(['/dashboard']);
+        if (!this.auth.isAuthenticated()) {
+          this.error.set('Login succeeded but session was not stored. Check browser storage settings.');
+          return;
+        }
+        await this.router.navigateByUrl('/dashboard');
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.error?.message ?? 'Login failed. Check API connectivity and credentials.');
+        const apiMessage =
+          err?.error?.message ||
+          err?.error?.errors?.[0] ||
+          err?.message ||
+          'Login failed. Check API connectivity and credentials.';
+        this.error.set(apiMessage);
       },
     });
   }
