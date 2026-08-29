@@ -24,7 +24,12 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers()
+        .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+        });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
@@ -62,7 +67,7 @@ try
     });
 
     var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-        ?? ["http://localhost:4200"];
+        ?? ["http://localhost:4200", "http://127.0.0.1:4200"];
 
     builder.Services.AddCors(options =>
     {
@@ -88,7 +93,6 @@ try
 
     var app = builder.Build();
 
-    app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseSerilogRequestLogging();
 
     if (app.Environment.IsDevelopment())
@@ -97,7 +101,10 @@ try
         app.UseSwaggerUI();
     }
 
+    // CORS must run before the exception middleware so error responses
+    // (e.g. invalid login) still include Access-Control-Allow-Origin.
     app.UseCors("Default");
+    app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseRateLimiter();
     app.UseAuthentication();
     app.UseAuthorization();

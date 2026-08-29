@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, map, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ApiResponse,
@@ -23,10 +23,19 @@ export class AuthService {
   readonly user = this.userSignal.asReadonly();
   readonly isAuthenticated = computed(() => !!this.getAccessToken() && !!this.userSignal());
 
-  login(request: LoginRequest): Observable<ApiResponse<AuthResponse>> {
+  login(request: LoginRequest): Observable<AuthResponse> {
     return this.http
       .post<ApiResponse<AuthResponse>>(`${environment.apiBaseUrl}/auth/login`, request)
-      .pipe(tap((response) => this.persistSession(response.data)));
+      .pipe(
+        map((response) => {
+          const data = response?.data;
+          if (!response?.success || !data?.accessToken || !data.user) {
+            throw new Error(response?.message || 'Login failed.');
+          }
+          return data;
+        }),
+        tap((data) => this.persistSession(data)),
+      );
   }
 
   logout(): void {
@@ -49,11 +58,7 @@ export class AuthService {
     return this.userSignal()?.roles?.includes(role) ?? false;
   }
 
-  private persistSession(data?: AuthResponse | null): void {
-    if (!data) {
-      return;
-    }
-
+  private persistSession(data: AuthResponse): void {
     localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
@@ -62,7 +67,7 @@ export class AuthService {
 
   private readStoredUser(): UserDto | null {
     const raw = localStorage.getItem(USER_KEY);
-    if (!raw) {
+    if (!raw || raw === 'undefined' || raw === 'null') {
       return null;
     }
 
