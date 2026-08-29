@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  apiBaseUrl: 'http://localhost:5080/api',
+  // Use relative /api in local serve so Angular proxy avoids CORS OPTIONS preflight.
+  apiBaseUrl: '/api',
 };
