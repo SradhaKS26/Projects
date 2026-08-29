@@ -61,6 +61,8 @@ cd ../admin-web
 npm start
 ```
 
+Postgres is published on host port **5433** (not 5432) so it does not conflict with a local Windows PostgreSQL install.
+
 Default seeded admin (change immediately in any shared environment):
 
 - Email: `admin@servicemanagement.local`
