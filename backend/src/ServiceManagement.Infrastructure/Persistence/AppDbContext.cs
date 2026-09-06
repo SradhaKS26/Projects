@@ -83,6 +83,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(2000);
             entity.Property(x => x.BasePrice).HasPrecision(18, 2);
+            entity.HasIndex(x => new { x.CategoryId, x.Name }).IsUnique();
             entity.HasOne(x => x.Category)
                 .WithMany(x => x.Services)
                 .HasForeignKey(x => x.CategoryId)

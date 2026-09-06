@@ -19,7 +19,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
         PermissionRequirement requirement)
     {
         var hasPermission = context.User.Claims.Any(c =>
-            c.Type == "permission" &&
+            c.Type == PermissionPolicies.ClaimType &&
             string.Equals(c.Value, requirement.Permission, StringComparison.OrdinalIgnoreCase));
 
         if (hasPermission)
@@ -34,6 +34,7 @@ public class PermissionAuthorizationHandler : AuthorizationHandler<PermissionReq
 public static class PermissionPolicies
 {
     public const string Prefix = "Permission:";
+    public const string ClaimType = "permission";
 
     public static string NameFor(string permission) => $"{Prefix}{permission}";
 }

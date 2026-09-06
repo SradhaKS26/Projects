@@ -1,0 +1,58 @@
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.subtitle {
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: -0.5rem;
+  max-width: 60ch;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.error {
+  color: #b00020;
+}
+
+.empty {
+  color: rgba(0, 0, 0, 0.6);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.description-cell {
+  max-width: 32ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.badge-inactive {
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.actions-header,
+.actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+mat-slide-toggle {
+  margin-bottom: 1rem;
+}
