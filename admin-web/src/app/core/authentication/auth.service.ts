@@ -50,7 +50,7 @@ export class AuthService {
 
     this.accessTokenSignal.set(null);
     this.userSignal.set(null);
-    void this.router.navigate(['/login']);
+    void this.router.navigateByUrl('/login', { replaceUrl: true });
   }
 
   getAccessToken(): string | null {
