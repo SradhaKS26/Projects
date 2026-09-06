@@ -46,6 +46,19 @@ Completed foundation:
 
 See [docs/PHASE1.md](docs/PHASE1.md).
 
+## Phase 2 status
+
+Service catalog:
+
+- Admin CRUD for service categories and services, gated on `ManageServices`
+- Catalog browsing for customers and providers (inactive records stay hidden)
+- Base pricing and estimated duration per service
+- Angular categories/services screens with search and filters
+- Flutter category → services browsing
+- Sample seed catalog on a fresh database
+
+See [docs/PHASE2.md](docs/PHASE2.md).
+
 ## Quick start
 
 ### 1. Database
