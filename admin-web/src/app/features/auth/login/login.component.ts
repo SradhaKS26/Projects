@@ -31,7 +31,8 @@ export class LoginComponent {
   readonly error = signal<string | null>(null);
 
   readonly form = this.fb.nonNullable.group({
-    email: ['admin@servicemanagement.local', [Validators.required, Validators.email]],
+    // Allow .local demo emails used by seeded accounts.
+    email: ['admin@servicemanagement.local', [Validators.required, Validators.minLength(3)]],
     password: ['ChangeMe!Admin123', [Validators.required, Validators.minLength(8)]],
   });
 
@@ -45,13 +46,18 @@ export class LoginComponent {
     this.error.set(null);
 
     this.auth.login(this.form.getRawValue()).subscribe({
-      next: () => {
+      next: async () => {
         this.loading.set(false);
-        void this.router.navigate(['/dashboard']);
+        await this.router.navigateByUrl('/dashboard');
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(err?.error?.message ?? 'Login failed. Check API connectivity and credentials.');
+        const apiMessage =
+          err?.error?.message ||
+          err?.error?.errors?.[0] ||
+          err?.message ||
+          'Login failed. Check API connectivity and credentials.';
+        this.error.set(apiMessage);
       },
     });
   }

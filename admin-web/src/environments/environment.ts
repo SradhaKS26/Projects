@@ -1,4 +1,6 @@
 export const environment = {
-  production: false,
-  apiBaseUrl: 'http://localhost:5080/api',
+  production: true,
+  // Production should usually serve API behind the same host/reverse proxy.
+  // Override at deploy time if the API is on a different origin.
+  apiBaseUrl: '/api',
 };

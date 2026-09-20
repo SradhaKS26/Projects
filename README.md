@@ -54,6 +54,8 @@ See [docs/PHASE1.md](docs/PHASE1.md).
 docker compose up -d postgres
 ```
 
+Postgres is available on **localhost:5433** (mapped away from 5432 to avoid conflicts with a local Windows PostgreSQL install).
+
 ### 2. API
 
 ```bash
