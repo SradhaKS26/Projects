@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, guestGuard } from './core/guards/auth.guard';
+import { authGuard, guestGuard, permissionGuard } from './core/guards/auth.guard';
 import { LoginComponent } from './features/auth/login/login.component';
 import { DashboardComponent } from './features/dashboard/dashboard.component';
 import { AdminShellComponent } from './features/layout/admin-shell.component';
@@ -21,9 +21,25 @@ export const routes: Routes = [
       { path: 'dashboard', component: DashboardComponent },
       { path: 'users', component: UsersComponent },
       {
+        path: 'my-application',
+        loadComponent: () =>
+          import('./features/providers/my-application.component').then(
+            (m) => m.MyApplicationComponent,
+          ),
+      },
+      {
         path: 'providers',
-        component: PlaceholderPage,
-        data: { title: 'Providers' },
+        canActivate: [permissionGuard('ManageProviders')],
+        loadComponent: () =>
+          import('./features/providers/providers.component').then((m) => m.ProvidersComponent),
+      },
+      {
+        path: 'providers/:id',
+        canActivate: [permissionGuard('ManageProviders')],
+        loadComponent: () =>
+          import('./features/providers/provider-review.component').then(
+            (m) => m.ProviderReviewComponent,
+          ),
       },
       {
         path: 'services',

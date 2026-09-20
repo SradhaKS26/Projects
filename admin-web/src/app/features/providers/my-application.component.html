@@ -1,0 +1,134 @@
+<section>
+  <header class="page-header">
+    <div>
+      <h1>My application</h1>
+      <p class="subtitle">
+        Until an administrator approves your application, this is the only screen you can use.
+        Select the services you can fulfill and upload the documents required for those categories.
+      </p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (profile(); as provider) {
+    <mat-card class="status-card">
+      <mat-card-title>Status: {{ provider.approvalStatus }}</mat-card-title>
+      <mat-card-content>
+        @switch (provider.approvalStatus) {
+          @case ('pending') {
+            <p>Your application is waiting for administrator review.</p>
+          }
+          @case ('approved') {
+            <p>You are approved. Set yourself available when you are ready to receive work.</p>
+          }
+          @case ('rejected') {
+            <p>Rejected{{ provider.reviewReason ? ': ' + provider.reviewReason : '.' }} Update and resubmit.</p>
+          }
+          @case ('suspended') {
+            <p>Suspended{{ provider.reviewReason ? ': ' + provider.reviewReason : '.' }} Contact an administrator.</p>
+          }
+        }
+        <p class="meta">
+          Active: {{ provider.isActive ? 'Yes' : 'No' }} · Availability: {{ provider.availabilityStatus }}
+        </p>
+      </mat-card-content>
+    </mat-card>
+
+    @if (provider.approvalStatus === 'approved') {
+      <mat-card>
+        <mat-card-title>Availability</mat-card-title>
+        <mat-card-content class="availability">
+          <button mat-flat-button color="primary" type="button" (click)="setAvailability('available')">
+            Available
+          </button>
+          <button mat-stroked-button type="button" (click)="setAvailability('unavailable')">
+            Unavailable
+          </button>
+          <button mat-stroked-button type="button" (click)="setAvailability('busy')">Busy</button>
+        </mat-card-content>
+      </mat-card>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="saveApplication()">
+      <mat-card>
+        <mat-card-title>About you</mat-card-title>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Description</mat-label>
+            <textarea matInput formControlName="description" rows="3" [readonly]="!canEditApplication()"></textarea>
+          </mat-form-field>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-title>Services you can fulfill</mat-card-title>
+        <mat-card-content>
+          @for (category of categories(); track category.id) {
+            <h3>{{ category.name }}</h3>
+            @for (service of servicesIn(category.id); track service.id) {
+              <div class="service-row">
+                <mat-checkbox
+                  [checked]="isSelected(service.id)"
+                  [disabled]="!canEditApplication()"
+                  (change)="toggleService(service.id, $event.checked)"
+                >
+                  {{ service.name }}
+                </mat-checkbox>
+                <span class="price">{{ service.basePrice | currency }}</span>
+              </div>
+            }
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-title>Required documents</mat-card-title>
+        <mat-card-content>
+          @if (requirements().length === 0) {
+            <p>Select services to see the documents that category requires.</p>
+          }
+          @for (req of requirements(); track req.id) {
+            <div class="doc-row">
+              <div>
+                <strong>{{ req.name }}</strong>
+                @if (req.isRequired) {
+                  <span class="required">Required</span>
+                }
+                <div class="meta">{{ req.categoryName }}{{ req.description ? ' · ' + req.description : '' }}</div>
+                @if (documentFor(req.id); as uploaded) {
+                  <div class="meta">Uploaded: {{ uploaded.originalFileName }}</div>
+                }
+              </div>
+              @if (canEditApplication()) {
+                <div class="doc-actions">
+                  <label class="upload">
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" (change)="upload(req.id, $event)" />
+                    Upload
+                  </label>
+                  @if (documentFor(req.id); as uploaded) {
+                    <button mat-button type="button" color="warn" (click)="removeDocument(uploaded.id)">
+                      Remove
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      @if (canEditApplication()) {
+        <button mat-flat-button color="primary" type="submit" [disabled]="saving()">
+          Save application
+        </button>
+      }
+    </form>
+  }
+</section>

@@ -21,5 +21,22 @@ export const guestGuard: CanActivateFn = () => {
     return true;
   }
 
-  return router.createUrlTree(['/dashboard']);
+  return router.createUrlTree([auth.homePath()]);
 };
+
+export const permissionGuard =
+  (permission: string): CanActivateFn =>
+  () => {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+
+    if (!auth.isAuthenticated()) {
+      return router.createUrlTree(['/login']);
+    }
+
+    if (auth.hasPermission(permission)) {
+      return true;
+    }
+
+    return router.createUrlTree([auth.homePath()]);
+  };

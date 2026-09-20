@@ -6,18 +6,22 @@
         Categories group the services customers can book. Adding a category needs no code change.
       </p>
     </div>
-    <button mat-flat-button color="primary" (click)="openCreate()">
-      <mat-icon>add</mat-icon>
-      New category
-    </button>
+    @if (canManage()) {
+      <button mat-flat-button color="primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        New category
+      </button>
+    }
   </header>
 
-  <mat-slide-toggle
-    [checked]="includeInactive()"
-    (change)="toggleInactive($event.checked)"
-  >
-    Show inactive
-  </mat-slide-toggle>
+  @if (canManage()) {
+    <mat-slide-toggle
+      [checked]="includeInactive()"
+      (change)="toggleInactive($event.checked)"
+    >
+      Show inactive
+    </mat-slide-toggle>
+  }
 
   @if (loading()) {
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
@@ -58,6 +62,9 @@
       <ng-container matColumnDef="actions">
         <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
         <td mat-cell *matCellDef="let row" class="actions-cell">
+          <button mat-icon-button matTooltip="Document requirements" (click)="openDocuments(row)">
+            <mat-icon>description</mat-icon>
+          </button>
           <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
             <mat-icon>edit</mat-icon>
           </button>
@@ -72,8 +79,8 @@
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
     </table>
 
     @if (!loading() && categories().length === 0) {

@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/networking/api_client.dart';
 import '../../../core/storage/token_storage.dart';
+import 'auth_models.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(
@@ -21,39 +24,29 @@ class AuthRepository {
   final Dio _dio;
   final TokenStorage _tokenStorage;
 
-  Future<void> login({
+  Future<AuthSession> login({
     required String email,
     required String password,
-  }) async {
-    final response = await _dio.post<Map<String, dynamic>>(
+  }) {
+    return _authenticate(
       '/auth/login',
-      data: {
+      {
         'email': email,
         'password': password,
       },
     );
-
-    final data = response.data?['data'] as Map<String, dynamic>?;
-    if (data == null) {
-      throw StateError('Login response was empty.');
-    }
-
-    await _tokenStorage.saveTokens(
-      accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-    );
   }
 
-  Future<void> register({
+  Future<AuthSession> register({
     required String firstName,
     required String lastName,
     required String email,
     required String password,
     required String role,
-  }) async {
-    final response = await _dio.post<Map<String, dynamic>>(
+  }) {
+    return _authenticate(
       '/auth/register',
-      data: {
+      {
         'firstName': firstName,
         'lastName': lastName,
         'email': email,
@@ -61,17 +54,41 @@ class AuthRepository {
         'role': role,
       },
     );
+  }
 
-    final data = response.data?['data'] as Map<String, dynamic>?;
-    if (data == null) {
-      throw StateError('Register response was empty.');
+  Future<AuthUser?> currentUser() async {
+    final raw = await _tokenStorage.readUserJson();
+    if (raw == null || raw.isEmpty) {
+      return null;
     }
 
-    await _tokenStorage.saveTokens(
-      accessToken: data['accessToken'] as String,
-      refreshToken: data['refreshToken'] as String,
-    );
+    return AuthUser.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
   Future<void> logout() => _tokenStorage.clear();
+
+  Future<AuthSession> _authenticate(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await _dio.post<Map<String, dynamic>>(path, data: body);
+    final data = response.data?['data'] as Map<String, dynamic>?;
+    if (data == null) {
+      throw StateError('Auth response was empty.');
+    }
+
+    final user = AuthUser.fromJson(data['user'] as Map<String, dynamic>);
+    final session = AuthSession(
+      accessToken: data['accessToken'] as String,
+      refreshToken: data['refreshToken'] as String,
+      user: user,
+    );
+
+    await _tokenStorage.saveTokens(
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+    );
+    await _tokenStorage.saveUserJson(user.toJson());
+    return session;
+  }
 }

@@ -10,4 +10,5 @@ public class ServiceCategory : BaseEntity
     public bool IsActive { get; set; } = true;
 
     public ICollection<Service> Services { get; set; } = [];
+    public ICollection<CategoryDocumentRequirement> DocumentRequirements { get; set; } = [];
 }

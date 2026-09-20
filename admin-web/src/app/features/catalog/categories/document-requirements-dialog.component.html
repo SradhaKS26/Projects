@@ -1,0 +1,60 @@
+<h2 mat-dialog-title>Documents for {{ data.category.name }}</h2>
+<mat-dialog-content class="dialog-content">
+  <p class="hint">
+    Providers who apply for any service in this category must upload the required documents.
+    A cook can need a food-safety certificate while a driver needs a licence — configure that here,
+    not in code.
+  </p>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  <ul class="req-list">
+    @for (req of requirements(); track req.id) {
+      <li>
+        <div>
+          <strong>{{ req.name }}</strong>
+          @if (req.isRequired) {
+            <span class="required">Required</span>
+          }
+          <div class="meta">{{ req.description || 'No description' }}</div>
+        </div>
+        <div>
+          <button mat-button type="button" (click)="edit(req)">Edit</button>
+          <button mat-button type="button" color="warn" (click)="remove(req)">Remove</button>
+        </div>
+      </li>
+    } @empty {
+      <li class="empty">No document requirements yet.</li>
+    }
+  </ul>
+
+  <form [formGroup]="form" (ngSubmit)="save()" class="form">
+    <h3>{{ editingId() ? 'Edit requirement' : 'Add requirement' }}</h3>
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" />
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="2"></textarea>
+    </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-label>Sort order</mat-label>
+      <input matInput type="number" formControlName="sortOrder" />
+    </mat-form-field>
+    <mat-checkbox formControlName="isRequired">Required</mat-checkbox>
+    <div class="form-actions">
+      @if (editingId()) {
+        <button mat-button type="button" (click)="cancelEdit()">Cancel edit</button>
+      }
+      <button mat-flat-button color="primary" type="submit">
+        {{ editingId() ? 'Save' : 'Add' }}
+      </button>
+    </div>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="dialogRef.close()">Close</button>
+</mat-dialog-actions>

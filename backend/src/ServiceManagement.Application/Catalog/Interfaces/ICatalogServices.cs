@@ -23,3 +23,22 @@ public interface IServiceCatalogService
     Task<ServiceDto> UpdateAsync(Guid id, UpdateServiceRequest request, CancellationToken cancellationToken = default);
     Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
 }
+
+public interface IDocumentRequirementService
+{
+    Task<IReadOnlyList<CategoryDocumentRequirementDto>> GetByCategoryAsync(
+        Guid categoryId,
+        CancellationToken cancellationToken = default);
+
+    Task<CategoryDocumentRequirementDto> CreateAsync(
+        Guid categoryId,
+        CreateDocumentRequirementRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task<CategoryDocumentRequirementDto> UpdateAsync(
+        Guid id,
+        UpdateDocumentRequirementRequest request,
+        CancellationToken cancellationToken = default);
+
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+}

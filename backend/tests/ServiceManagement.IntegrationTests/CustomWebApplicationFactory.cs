@@ -15,12 +15,16 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     // EF's in-memory provider keys stores by name globally, so a shared constant would
     // let parallel test classes seed into the same store and duplicate the seed users.
     private readonly string _databaseName = $"ServiceManagementTests_{Guid.NewGuid():N}";
+    private readonly string _storageRoot = Path.Combine(Path.GetTempPath(), $"sm-docs-{Guid.NewGuid():N}");
     private readonly SemaphoreSlim _seedLock = new(1, 1);
     private bool _seeded;
+
+    public string StorageRoot => _storageRoot;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        builder.UseSetting("FileStorage:LocalRoot", _storageRoot);
 
         builder.ConfigureServices(services =>
         {
@@ -30,6 +34,22 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.AddDbContext<AppDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));
         });
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        if (disposing && Directory.Exists(_storageRoot))
+        {
+            try
+            {
+                Directory.Delete(_storageRoot, recursive: true);
+            }
+            catch
+            {
+                // Temp cleanup is best-effort.
+            }
+        }
     }
 
     public async Task EnsureSeededAsync()

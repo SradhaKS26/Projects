@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
@@ -9,11 +9,13 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { CatalogApiService } from '../../../core/catalog/catalog-api.service';
+import { AuthService } from '../../../core/authentication/auth.service';
 import {
   ServiceCategory,
   ServiceCategoryPayload,
 } from '../../../shared/models/catalog.models';
 import { CategoryDialogComponent } from './category-dialog.component';
+import { DocumentRequirementsDialogComponent } from './document-requirements-dialog.component';
 
 @Component({
   selector: 'app-service-categories',
@@ -35,14 +37,25 @@ export class ServiceCategoriesComponent implements OnInit {
   private readonly api = inject(CatalogApiService);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
+  readonly auth = inject(AuthService);
 
+  readonly canManage = computed(() => this.auth.hasPermission('ManageServices'));
   readonly categories = signal<ServiceCategory[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly includeInactive = signal(true);
-  readonly displayedColumns = ['name', 'description', 'serviceCount', 'status', 'actions'];
+  readonly includeInactive = signal(false);
+  readonly displayedColumns = computed(() => {
+    const columns = ['name', 'description', 'serviceCount', 'status'];
+    if (this.canManage()) {
+      columns.push('actions');
+    }
+    return columns;
+  });
 
   ngOnInit(): void {
+    if (this.canManage()) {
+      this.includeInactive.set(true);
+    }
     this.load();
   }
 
@@ -120,6 +133,13 @@ export class ServiceCategoriesComponent implements OnInit {
         this.load();
       },
       error: (err) => this.notify(this.messageFrom(err, 'Unable to deactivate category.')),
+    });
+  }
+
+  openDocuments(category: ServiceCategory): void {
+    this.dialog.open(DocumentRequirementsDialogComponent, {
+      data: { category },
+      width: '640px',
     });
   }
 

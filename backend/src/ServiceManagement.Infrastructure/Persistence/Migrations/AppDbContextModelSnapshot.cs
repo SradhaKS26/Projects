@@ -247,6 +247,44 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CategoryDocumentRequirements");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CustomerAddress", b =>
                 {
                     b.Property<Guid>("Id")
@@ -331,6 +369,55 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.ToTable("Permissions");
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.ProviderDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DocumentRequirementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(260)
+                        .HasColumnType("character varying(260)");
+
+                    b.Property<Guid>("ProviderProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentRequirementId");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.HasIndex("ProviderProfileId", "DocumentRequirementId")
+                        .IsUnique();
+
+                    b.ToTable("ProviderDocuments");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.ProviderService", b =>
                 {
                     b.Property<Guid>("ProviderProfileId")
@@ -338,6 +425,15 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid>("ServiceId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
 
                     b.HasKey("ProviderProfileId", "ServiceId");
 
@@ -521,6 +617,9 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("integer");
+
                     b.Property<int>("AvailabilityStatus")
                         .HasColumnType("integer");
 
@@ -538,6 +637,16 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .HasPrecision(3, 2)
                         .HasColumnType("numeric(3,2)");
 
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -545,6 +654,10 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ApprovalStatus");
+
+                    b.HasIndex("ReviewedByUserId");
 
                     b.HasIndex("UserId")
                         .IsUnique();
@@ -745,6 +858,17 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", b =>
+                {
+                    b.HasOne("ServiceManagement.Domain.Entities.ServiceCategory", "Category")
+                        .WithMany("DocumentRequirements")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CustomerAddress", b =>
                 {
                     b.HasOne("ServiceManagement.Domain.Entities.ApplicationUser", "User")
@@ -754,6 +878,25 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.ProviderDocument", b =>
+                {
+                    b.HasOne("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", "DocumentRequirement")
+                        .WithMany("Documents")
+                        .HasForeignKey("DocumentRequirementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ServiceManagement.Domain.Entities.ServiceProviderProfile", "ProviderProfile")
+                        .WithMany("Documents")
+                        .HasForeignKey("ProviderProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentRequirement");
+
+                    b.Navigation("ProviderProfile");
                 });
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.ProviderService", b =>
@@ -845,11 +988,18 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.ServiceProviderProfile", b =>
                 {
+                    b.HasOne("ServiceManagement.Domain.Entities.ApplicationUser", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedByUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ServiceManagement.Domain.Entities.ApplicationUser", "User")
                         .WithOne("ProviderProfile")
                         .HasForeignKey("ServiceManagement.Domain.Entities.ServiceProviderProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ReviewedByUser");
 
                     b.Navigation("User");
                 });
@@ -939,6 +1089,11 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.Navigation("RefreshTokens");
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", b =>
+                {
+                    b.Navigation("Documents");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
@@ -953,11 +1108,15 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.ServiceCategory", b =>
                 {
+                    b.Navigation("DocumentRequirements");
+
                     b.Navigation("Services");
                 });
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.ServiceProviderProfile", b =>
                 {
+                    b.Navigation("Documents");
+
                     b.Navigation("ProviderServices");
                 });
 
