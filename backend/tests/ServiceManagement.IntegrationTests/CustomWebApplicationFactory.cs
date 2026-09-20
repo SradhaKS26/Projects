@@ -12,6 +12,10 @@ namespace ServiceManagement.IntegrationTests;
 
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
+    // EF's in-memory provider keys stores by name globally, so a shared constant would
+    // let parallel test classes seed into the same store and duplicate the seed users.
+    private readonly string _databaseName = $"ServiceManagementTests_{Guid.NewGuid():N}";
+    private readonly SemaphoreSlim _seedLock = new(1, 1);
     private bool _seeded;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -24,7 +28,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll(typeof(AppDbContext));
 
             services.AddDbContext<AppDbContext>(options =>
-                options.UseInMemoryDatabase("ServiceManagementTests"));
+                options.UseInMemoryDatabase(_databaseName));
         });
     }
 
@@ -35,14 +39,27 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
             return;
         }
 
-        using var scope = Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+        await _seedLock.WaitAsync();
+        try
+        {
+            if (_seeded)
+            {
+                return;
+            }
 
-        await db.Database.EnsureCreatedAsync();
-        await SeedTestDataAsync(db, userManager, roleManager);
-        _seeded = true;
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<ApplicationRole>>();
+
+            await db.Database.EnsureCreatedAsync();
+            await SeedTestDataAsync(db, userManager, roleManager);
+            _seeded = true;
+        }
+        finally
+        {
+            _seedLock.Release();
+        }
     }
 
     private static async Task SeedTestDataAsync(

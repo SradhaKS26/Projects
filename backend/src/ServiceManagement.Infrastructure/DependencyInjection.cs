@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using ServiceManagement.Application.Auth.Interfaces;
+using ServiceManagement.Application.Catalog.Interfaces;
 using ServiceManagement.Application.Roles.Interfaces;
 using ServiceManagement.Application.Users.Interfaces;
 using ServiceManagement.Domain.Constants;
@@ -87,6 +88,8 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
+        services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
 
         return services;
     }

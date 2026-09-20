@@ -9,7 +9,8 @@ using ServiceManagement.Domain.Constants;
 
 namespace ServiceManagement.IntegrationTests;
 
-public class AuthApiTests : IClassFixture<CustomWebApplicationFactory>, IAsyncLifetime
+[Collection(ApiCollection.Name)]
+public class AuthApiTests : IAsyncLifetime
 {
     private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;

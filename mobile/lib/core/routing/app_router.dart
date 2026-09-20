@@ -25,6 +25,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/services',
             builder: (context, state) => const ServicesScreen(),
+            routes: [
+              GoRoute(
+                path: ':categoryId',
+                builder: (context, state) => CategoryServicesScreen(
+                  categoryId: state.pathParameters['categoryId']!,
+                  categoryName: state.uri.queryParameters['name'] ?? 'Services',
+                ),
+              ),
+            ],
           ),
           GoRoute(
             path: '/profile',

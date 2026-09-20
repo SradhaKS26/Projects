@@ -71,7 +71,7 @@ Default seeded admin (change immediately in any shared environment):
 
 ## Next phases
 
-- Phase 2: service categories, services, pricing, admin CRUD, Flutter browsing
+- Phase 2: service categories, services, pricing, admin CRUD, Flutter browsing — see [PHASE2.md](PHASE2.md)
 - Phase 3: service request lifecycle and assignment
 - Phase 4: provider workflows + notifications
 - Phase 5: customer tracking, history, reviews

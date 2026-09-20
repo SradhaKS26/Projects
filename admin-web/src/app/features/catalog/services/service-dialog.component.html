@@ -1,0 +1,58 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Edit service' : 'New service' }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content class="dialog-content">
+    <mat-form-field appearance="outline">
+      <mat-label>Category</mat-label>
+      <mat-select formControlName="categoryId">
+        @for (category of categories; track category.id) {
+          <mat-option [value]="category.id">
+            {{ category.name }}{{ category.isActive ? '' : ' (inactive)' }}
+          </mat-option>
+        }
+      </mat-select>
+      @if (form.controls.categoryId.hasError('required') && form.controls.categoryId.touched) {
+        <mat-error>Choose a category.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Name</mat-label>
+      <input matInput formControlName="name" autocomplete="off" />
+      @if (form.controls.name.hasError('required') && form.controls.name.touched) {
+        <mat-error>Name is required.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Description</mat-label>
+      <textarea matInput formControlName="description" rows="3"></textarea>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Base price</mat-label>
+      <input matInput type="number" min="0" step="0.01" formControlName="basePrice" />
+      @if (form.controls.basePrice.hasError('min')) {
+        <mat-error>Price cannot be negative.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Estimated duration (minutes)</mat-label>
+      <input matInput type="number" min="1" formControlName="estimatedDurationMinutes" />
+      <mat-hint>Optional</mat-hint>
+      @if (form.controls.estimatedDurationMinutes.hasError('min')) {
+        <mat-error>Duration must be at least 1 minute.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-checkbox formControlName="isActive">Active</mat-checkbox>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" (click)="cancel()">Cancel</button>
+    <button mat-flat-button color="primary" type="submit">
+      {{ isEdit ? 'Save changes' : 'Create' }}
+    </button>
+  </mat-dialog-actions>
+</form>

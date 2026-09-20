@@ -27,13 +27,17 @@ export const routes: Routes = [
       },
       {
         path: 'services',
-        component: PlaceholderPage,
-        data: { title: 'Services' },
+        loadComponent: () =>
+          import('./features/catalog/services/services.component').then(
+            (m) => m.ServicesComponent,
+          ),
       },
       {
         path: 'service-categories',
-        component: PlaceholderPage,
-        data: { title: 'Service Categories' },
+        loadComponent: () =>
+          import('./features/catalog/categories/service-categories.component').then(
+            (m) => m.ServiceCategoriesComponent,
+          ),
       },
       {
         path: 'service-requests',
