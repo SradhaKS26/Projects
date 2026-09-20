@@ -18,9 +18,7 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-            Text(
               'Browse the catalog. Providers who are not yet approved only see their application status.',
-            ),
             ),
           ],
         ),

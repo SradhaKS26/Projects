@@ -152,7 +152,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     if (_register) ...[
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _role,
+                        initialValue: _role,
                         decoration: const InputDecoration(labelText: 'I am a'),
                         items: const [
                           DropdownMenuItem(value: 'CommonUser', child: Text('Customer')),
