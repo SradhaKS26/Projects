@@ -12,6 +12,7 @@ class TokenStorage {
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
+  static const _userKey = 'user_json';
 
   Future<void> saveTokens({
     required String accessToken,
@@ -21,12 +22,17 @@ class TokenStorage {
     await _storage.write(key: _refreshTokenKey, value: refreshToken);
   }
 
+  Future<void> saveUserJson(String json) => _storage.write(key: _userKey, value: json);
+
   Future<String?> readAccessToken() => _storage.read(key: _accessTokenKey);
 
   Future<String?> readRefreshToken() => _storage.read(key: _refreshTokenKey);
 
+  Future<String?> readUserJson() => _storage.read(key: _userKey);
+
   Future<void> clear() async {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
+    await _storage.delete(key: _userKey);
   }
 }

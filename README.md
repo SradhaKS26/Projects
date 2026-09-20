@@ -57,7 +57,19 @@ Service catalog:
 - Flutter category → services browsing
 - Sample seed catalog on a fresh database
 
-See [docs/PHASE2.md](docs/PHASE2.md).
+## Phase 3A status
+
+Provider onboarding and approval:
+
+- Providers apply for catalog services and upload documents
+- Approval status (`Pending` / `Approved` / `Rejected` / `Suspended`) is separate
+  from `IsActive` and availability
+- Document requirements are configurable per category
+- Admin review UI replaces the Providers placeholder
+- Unapproved providers see only their application status
+- Eligibility rule is in place for Phase 3B broadcast
+
+See [docs/PHASE3A.md](docs/PHASE3A.md).
 
 ## Quick start
 

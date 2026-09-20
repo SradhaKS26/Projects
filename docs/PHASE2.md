@@ -101,10 +101,12 @@ empty. It never overwrites operator-managed data.
 ## Not in this phase
 
 Provider-to-service mapping, per-provider pricing overrides, and the service request
-lifecycle. `ProviderService` and `ServiceRequest` remain modeled but unused.
+lifecycle. `ProviderService` and `ServiceRequest` remain modeled but unused until
+Phase 3A / 3B.
 
 ## Next phases
 
-- Phase 3: service request lifecycle and assignment
+- Phase 3A: provider onboarding and approval — see [PHASE3A.md](PHASE3A.md)
+- Phase 3B: service request broadcast, first-to-accept, expiry
 - Phase 4: provider workflows + notifications
 - Phase 5: customer tracking, history, reviews

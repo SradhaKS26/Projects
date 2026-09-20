@@ -6,10 +6,12 @@
         Bookable services and their base pricing. Every service belongs to a category.
       </p>
     </div>
-    <button mat-flat-button color="primary" (click)="openCreate()">
-      <mat-icon>add</mat-icon>
-      New service
-    </button>
+    @if (canManage()) {
+      <button mat-flat-button color="primary" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        New service
+      </button>
+    }
   </header>
 
   <form [formGroup]="filters" class="filters">
@@ -29,7 +31,9 @@
       </mat-select>
     </mat-form-field>
 
-    <mat-slide-toggle formControlName="includeInactive">Show inactive</mat-slide-toggle>
+    @if (canManage()) {
+      <mat-slide-toggle formControlName="includeInactive">Show inactive</mat-slide-toggle>
+    }
   </form>
 
   @if (loading()) {
@@ -88,8 +92,8 @@
         </td>
       </ng-container>
 
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
     </table>
 
     @if (!loading() && services().length === 0) {

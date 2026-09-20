@@ -18,6 +18,8 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<Service> Services => Set<Service>();
     public DbSet<ServiceProviderProfile> ServiceProviderProfiles => Set<ServiceProviderProfile>();
     public DbSet<ProviderService> ProviderServices => Set<ProviderService>();
+    public DbSet<CategoryDocumentRequirement> CategoryDocumentRequirements => Set<CategoryDocumentRequirement>();
+    public DbSet<ProviderDocument> ProviderDocuments => Set<ProviderDocument>();
     public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
     public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
     public DbSet<ServiceRequestStatusHistory> ServiceRequestStatusHistories => Set<ServiceRequestStatusHistory>();
@@ -93,12 +95,18 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         builder.Entity<ServiceProviderProfile>(entity =>
         {
             entity.HasIndex(x => x.UserId).IsUnique();
+            entity.HasIndex(x => x.ApprovalStatus);
             entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.Property(x => x.ReviewReason).HasMaxLength(2000);
             entity.Property(x => x.Rating).HasPrecision(3, 2);
             entity.HasOne(x => x.User)
                 .WithOne(x => x.ProviderProfile)
                 .HasForeignKey<ServiceProviderProfile>(x => x.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.ReviewedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<ProviderService>(entity =>
@@ -112,6 +120,34 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .WithMany(x => x.ProviderServices)
                 .HasForeignKey(x => x.ServiceId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<CategoryDocumentRequirement>(entity =>
+        {
+            entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(2000);
+            entity.HasIndex(x => new { x.CategoryId, x.Name }).IsUnique();
+            entity.HasOne(x => x.Category)
+                .WithMany(x => x.DocumentRequirements)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<ProviderDocument>(entity =>
+        {
+            entity.Property(x => x.OriginalFileName).HasMaxLength(260).IsRequired();
+            entity.Property(x => x.ContentType).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.StorageKey).HasMaxLength(512).IsRequired();
+            entity.HasIndex(x => new { x.ProviderProfileId, x.DocumentRequirementId }).IsUnique();
+            entity.HasIndex(x => x.StorageKey).IsUnique();
+            entity.HasOne(x => x.ProviderProfile)
+                .WithMany(x => x.Documents)
+                .HasForeignKey(x => x.ProviderProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.DocumentRequirement)
+                .WithMany(x => x.Documents)
+                .HasForeignKey(x => x.DocumentRequirementId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<CustomerAddress>(entity =>

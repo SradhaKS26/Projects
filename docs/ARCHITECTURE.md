@@ -40,4 +40,4 @@ Transitions are gated by `ServiceRequestStateMachine` (Phase 3 will expose workf
 
 - **Angular admin-web** consumes REST only
 - **Flutter mobile** consumes REST only
-- File blobs will use object storage later; never store files in PostgreSQL
+- File blobs use local disk in Phase 3A via `IFileStorage`; never store files in PostgreSQL. Object storage can replace the implementation later.

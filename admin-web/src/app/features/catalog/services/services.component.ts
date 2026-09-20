@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -16,6 +16,7 @@ import { CurrencyPipe } from '@angular/common';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CatalogApiService } from '../../../core/catalog/catalog-api.service';
+import { AuthService } from '../../../core/authentication/auth.service';
 import {
   CatalogService,
   CatalogServicePayload,
@@ -49,24 +50,25 @@ export class ServicesComponent implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
+  readonly auth = inject(AuthService);
 
+  readonly canManage = computed(() => this.auth.hasPermission('ManageServices'));
   readonly services = signal<CatalogService[]>([]);
   readonly categories = signal<ServiceCategory[]>([]);
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
-  readonly displayedColumns = [
-    'name',
-    'category',
-    'basePrice',
-    'duration',
-    'status',
-    'actions',
-  ];
+  readonly displayedColumns = computed(() => {
+    const columns = ['name', 'category', 'basePrice', 'duration', 'status'];
+    if (this.canManage()) {
+      columns.push('actions');
+    }
+    return columns;
+  });
 
   readonly filters = this.fb.nonNullable.group({
     search: [''],
     categoryId: [''],
-    includeInactive: [true],
+    includeInactive: [false],
   });
 
   constructor() {
@@ -84,7 +86,11 @@ export class ServicesComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.api.getCategories(true).subscribe({
+    if (this.canManage()) {
+      this.filters.controls.includeInactive.setValue(true, { emitEvent: false });
+    }
+
+    this.api.getCategories(this.canManage()).subscribe({
       next: (categories) => this.categories.set(categories),
       error: () => this.categories.set([]),
     });

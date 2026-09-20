@@ -1,0 +1,78 @@
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.subtitle {
+  color: rgba(0, 0, 0, 0.6);
+  margin-top: -0.5rem;
+  max-width: 70ch;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.filters mat-form-field {
+  min-width: 220px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.error {
+  color: #b00020;
+}
+
+.empty {
+  color: rgba(0, 0, 0, 0.6);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: rgba(0, 0, 0, 0.08);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.badge-pending {
+  background: rgba(245, 124, 0, 0.14);
+  color: #e65100;
+}
+
+.badge-approved {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.badge-rejected,
+.badge-suspended {
+  background: rgba(198, 40, 40, 0.12);
+  color: #c62828;
+}
+
+.missing {
+  display: block;
+  font-size: 0.75rem;
+  color: #c62828;
+  margin-top: 0.2rem;
+}
+
+.actions-header,
+.actions-cell {
+  text-align: right;
+  white-space: nowrap;
+}

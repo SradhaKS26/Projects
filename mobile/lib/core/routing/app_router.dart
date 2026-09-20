@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/authentication/presentation/login_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/providers/presentation/provider_application_screen.dart';
 import '../../features/services/presentation/services_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -14,6 +15,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/provider/application',
+        builder: (context, state) => const ProviderApplicationScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
