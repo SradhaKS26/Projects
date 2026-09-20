@@ -1,0 +1,99 @@
+<section>
+  <header class="page-header">
+    <div>
+      <h1>Services</h1>
+      <p class="subtitle">
+        Bookable services and their base pricing. Every service belongs to a category.
+      </p>
+    </div>
+    <button mat-flat-button color="primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>
+      New service
+    </button>
+  </header>
+
+  <form [formGroup]="filters" class="filters">
+    <mat-form-field appearance="outline">
+      <mat-label>Search</mat-label>
+      <input matInput formControlName="search" placeholder="Name or description" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Category</mat-label>
+      <mat-select formControlName="categoryId">
+        <mat-option value="">All categories</mat-option>
+        @for (category of categories(); track category.id) {
+          <mat-option [value]="category.id">{{ category.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-slide-toggle formControlName="includeInactive">Show inactive</mat-slide-toggle>
+  </form>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  <mat-card>
+    <table mat-table [dataSource]="services()" class="full-width">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Service</th>
+        <td mat-cell *matCellDef="let row">
+          <div class="service-name">{{ row.name }}</div>
+          <div class="service-description">{{ row.description || '—' }}</div>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="category">
+        <th mat-header-cell *matHeaderCellDef>Category</th>
+        <td mat-cell *matCellDef="let row">{{ row.categoryName }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="basePrice">
+        <th mat-header-cell *matHeaderCellDef>Base price</th>
+        <td mat-cell *matCellDef="let row">{{ row.basePrice | currency }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="duration">
+        <th mat-header-cell *matHeaderCellDef>Duration</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.estimatedDurationMinutes ? row.estimatedDurationMinutes + ' min' : '—' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [class.badge-inactive]="!row.isActive">
+            {{ row.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button mat-icon-button matTooltip="Remove" (click)="remove(row)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    @if (!loading() && services().length === 0) {
+      <p class="empty">No services match the current filters.</p>
+    }
+  </mat-card>
+</section>

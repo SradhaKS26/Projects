@@ -2,6 +2,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using ServiceManagement.Api.Filters;
 using ServiceManagement.Api.Middleware;
 using ServiceManagement.Application;
 using ServiceManagement.Infrastructure;
@@ -24,7 +25,7 @@ try
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
-    builder.Services.AddControllers()
+    builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
         .AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;

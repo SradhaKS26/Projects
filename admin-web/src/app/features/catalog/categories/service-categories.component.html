@@ -1,0 +1,83 @@
+<section>
+  <header class="page-header">
+    <div>
+      <h1>Service Categories</h1>
+      <p class="subtitle">
+        Categories group the services customers can book. Adding a category needs no code change.
+      </p>
+    </div>
+    <button mat-flat-button color="primary" (click)="openCreate()">
+      <mat-icon>add</mat-icon>
+      New category
+    </button>
+  </header>
+
+  <mat-slide-toggle
+    [checked]="includeInactive()"
+    (change)="toggleInactive($event.checked)"
+  >
+    Show inactive
+  </mat-slide-toggle>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  <mat-card>
+    <table mat-table [dataSource]="categories()" class="full-width">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Name</th>
+        <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="description">
+        <th mat-header-cell *matHeaderCellDef>Description</th>
+        <td mat-cell *matCellDef="let row" class="description-cell">
+          {{ row.description || '—' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="serviceCount">
+        <th mat-header-cell *matHeaderCellDef>Services</th>
+        <td mat-cell *matCellDef="let row">{{ row.serviceCount }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="status">
+        <th mat-header-cell *matHeaderCellDef>Status</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [class.badge-inactive]="!row.isActive">
+            {{ row.isActive ? 'Active' : 'Inactive' }}
+          </span>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header">Actions</th>
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <button mat-icon-button matTooltip="Edit" (click)="openEdit(row)">
+            <mat-icon>edit</mat-icon>
+          </button>
+          <button
+            mat-icon-button
+            matTooltip="Deactivate"
+            [disabled]="!row.isActive"
+            (click)="disable(row)"
+          >
+            <mat-icon>block</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    @if (!loading() && categories().length === 0) {
+      <p class="empty">No categories yet. Create the first one to start building your catalog.</p>
+    }
+  </mat-card>
+</section>

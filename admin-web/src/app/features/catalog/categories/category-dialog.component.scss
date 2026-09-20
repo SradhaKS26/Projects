@@ -1,0 +1,13 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 420px;
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 599px) {
+  .dialog-content {
+    min-width: auto;
+  }
+}
