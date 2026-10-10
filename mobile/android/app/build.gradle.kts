@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "com.servicemanagement.service_management_mobile"
-    compileSdk = flutter.compileSdkVersion
+    // file_picker → flutter_plugin_android_lifecycle requires API 36+.
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
