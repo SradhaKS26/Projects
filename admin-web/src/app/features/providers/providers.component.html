@@ -1,0 +1,95 @@
+<section>
+  <header class="page-header">
+    <div>
+      <h1>Providers</h1>
+      <p class="subtitle">
+        Review applications, documents, and the services each provider has applied to fulfill.
+        Pricing stays on the service — never on the provider.
+      </p>
+    </div>
+  </header>
+
+  <form [formGroup]="filters" class="filters">
+    <mat-form-field appearance="outline">
+      <mat-label>Search</mat-label>
+      <input matInput formControlName="search" placeholder="Name or email" />
+      <mat-icon matSuffix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Approval</mat-label>
+      <mat-select formControlName="approvalStatus">
+        <mat-option value="">All statuses</mat-option>
+        <mat-option value="pending">Pending</mat-option>
+        <mat-option value="approved">Approved</mat-option>
+        <mat-option value="rejected">Rejected</mat-option>
+        <mat-option value="suspended">Suspended</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </form>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  <mat-card>
+    <table mat-table [dataSource]="providers()" class="full-width">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Provider</th>
+        <td mat-cell *matCellDef="let row">{{ row.firstName }} {{ row.lastName }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="email">
+        <th mat-header-cell *matHeaderCellDef>Email</th>
+        <td mat-cell *matCellDef="let row">{{ row.email }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="services">
+        <th mat-header-cell *matHeaderCellDef>Services applied</th>
+        <td mat-cell *matCellDef="let row">
+          {{ row.appliedServices.length ? row.appliedServices.join(', ') : '—' }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="approvalStatus">
+        <th mat-header-cell *matHeaderCellDef>Approval</th>
+        <td mat-cell *matCellDef="let row">
+          <span class="badge" [class]="'badge-' + row.approvalStatus">
+            {{ row.approvalStatus }}
+          </span>
+          @if (row.hasMissingRequiredDocuments) {
+            <span class="missing">docs missing</span>
+          }
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="active">
+        <th mat-header-cell *matHeaderCellDef>Active</th>
+        <td mat-cell *matCellDef="let row">{{ row.isActive ? 'Yes' : 'No' }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="documents">
+        <th mat-header-cell *matHeaderCellDef>Documents</th>
+        <td mat-cell *matCellDef="let row">{{ row.documentCount }}</td>
+      </ng-container>
+
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef class="actions-header">Review</th>
+        <td mat-cell *matCellDef="let row" class="actions-cell">
+          <a mat-stroked-button [routerLink]="['/providers', row.id]">Open</a>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+    </table>
+
+    @if (!loading() && providers().length === 0) {
+      <p class="empty">No providers match the current filters.</p>
+    }
+  </mat-card>
+</section>

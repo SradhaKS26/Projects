@@ -1,0 +1,49 @@
+.dialog-content {
+  min-width: 480px;
+  max-width: 640px;
+}
+
+.hint,
+.meta,
+.empty {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.req-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.req-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.required {
+  margin-left: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c62828;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 599px) {
+  .dialog-content {
+    min-width: auto;
+  }
+}

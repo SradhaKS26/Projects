@@ -8,13 +8,16 @@
       <mat-card-content>
         <p>{{ auth.user()?.email }}</p>
         <p>Roles: {{ auth.user()?.roles?.join(', ') }}</p>
+        @if (auth.isProviderOnly()) {
+          <p>Your application is under <a routerLink="/my-application">My application</a>.</p>
+        }
       </mat-card-content>
     </mat-card>
 
     <mat-card>
       <mat-card-title>MVP focus</mat-card-title>
       <mat-card-content>
-        Authentication, RBAC, and admin navigation are wired. Service and request management come next.
+        Provider onboarding and approval are live. Catalog writes still require ManageServices.
       </mat-card-content>
     </mat-card>
   </div>

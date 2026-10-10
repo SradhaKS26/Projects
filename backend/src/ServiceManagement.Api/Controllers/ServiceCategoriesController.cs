@@ -14,10 +14,14 @@ namespace ServiceManagement.Api.Controllers;
 public class ServiceCategoriesController : ControllerBase
 {
     private readonly IServiceCategoryService _categoryService;
+    private readonly IDocumentRequirementService _documentRequirements;
 
-    public ServiceCategoriesController(IServiceCategoryService categoryService)
+    public ServiceCategoriesController(
+        IServiceCategoryService categoryService,
+        IDocumentRequirementService documentRequirements)
     {
         _categoryService = categoryService;
+        _documentRequirements = documentRequirements;
     }
 
     /// <summary>
@@ -72,6 +76,29 @@ public class ServiceCategoriesController : ControllerBase
     {
         await _categoryService.DisableAsync(id, cancellationToken);
         return Ok(ApiResponse<object>.Ok(null!, "Service category deactivated."));
+    }
+
+    [HttpGet("{id:guid}/document-requirements")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<CategoryDocumentRequirementDto>>>> GetDocumentRequirements(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var requirements = await _documentRequirements.GetByCategoryAsync(id, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<CategoryDocumentRequirementDto>>.Ok(requirements));
+    }
+
+    [HttpPost("{id:guid}/document-requirements")]
+    [Authorize(Policy = PermissionPolicies.Prefix + Permissions.ManageServices)]
+    public async Task<ActionResult<ApiResponse<CategoryDocumentRequirementDto>>> CreateDocumentRequirement(
+        Guid id,
+        [FromBody] CreateDocumentRequirementRequest request,
+        CancellationToken cancellationToken)
+    {
+        var requirement = await _documentRequirements.CreateAsync(id, request, cancellationToken);
+        return CreatedAtAction(
+            nameof(GetDocumentRequirements),
+            new { id },
+            ApiResponse<CategoryDocumentRequirementDto>.Ok(requirement, "Document requirement created."));
     }
 
     private bool CanManage() =>

@@ -18,7 +18,7 @@ class HomeScreen extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Phase 1 Flutter shell is ready. Browse services and manage requests in later phases.',
+              'Browse the catalog. Providers who are not yet approved only see their application status.',
             ),
           ],
         ),

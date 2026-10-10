@@ -1,0 +1,106 @@
+<section>
+  <p>
+    <a routerLink="/providers">← All providers</a>
+  </p>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (profile(); as provider) {
+    <header class="page-header">
+      <div>
+        <h1>{{ provider.firstName }} {{ provider.lastName }}</h1>
+        <p class="subtitle">{{ provider.email }} · {{ provider.phoneNumber || 'No phone' }}</p>
+      </div>
+      <span class="badge" [class]="'badge-' + provider.approvalStatus">
+        {{ provider.approvalStatus }}
+      </span>
+    </header>
+
+    @if (provider.reviewReason) {
+      <p class="reason">Review note: {{ provider.reviewReason }}</p>
+    }
+
+    <div class="actions">
+      @if (provider.approvalStatus === 'pending' || provider.approvalStatus === 'rejected') {
+        <button mat-flat-button color="primary" (click)="approve()">Approve</button>
+        <button mat-stroked-button color="warn" (click)="reject()">Reject</button>
+      }
+      @if (provider.approvalStatus === 'approved') {
+        <button mat-stroked-button color="warn" (click)="suspend()">Suspend</button>
+      }
+      @if (provider.approvalStatus === 'suspended') {
+        <button mat-flat-button color="primary" (click)="reinstate()">Reinstate</button>
+      }
+      <button mat-button (click)="toggleActive()">
+        {{ provider.isActive ? 'Deactivate' : 'Activate' }}
+      </button>
+    </div>
+
+    <div class="grid">
+      <mat-card>
+        <mat-card-title>Application</mat-card-title>
+        <mat-card-content>
+          <p>{{ provider.description || 'No description provided.' }}</p>
+          <p class="meta">
+            Operationally active: {{ provider.isActive ? 'Yes' : 'No' }} · Availability:
+            {{ provider.availabilityStatus }}
+          </p>
+          @if (provider.missingRequiredDocuments.length) {
+            <p class="warn">
+              Missing required documents:
+              {{ missingNames(provider) }}
+            </p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card>
+        <mat-card-title>Services applied for</mat-card-title>
+        <mat-card-content>
+          @if (provider.services.length === 0) {
+            <p>No services selected yet.</p>
+          }
+          @for (service of provider.services; track service.serviceId) {
+            <div class="row">
+              <div>
+                <strong>{{ service.serviceName }}</strong>
+                <div class="meta">{{ service.categoryName }} · {{ service.basePrice | currency }}</div>
+              </div>
+              <span class="badge" [class]="'badge-' + service.status">{{ service.status }}</span>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="span">
+        <mat-card-title>Documents</mat-card-title>
+        <mat-card-content>
+          @if (provider.documents.length === 0) {
+            <p>No documents uploaded.</p>
+          }
+          @for (doc of provider.documents; track doc.id) {
+            <div class="row">
+              <div>
+                <strong>{{ doc.requirementName }}</strong>
+                <div class="meta">
+                  {{ doc.categoryName }} · {{ doc.originalFileName }} ·
+                  {{ doc.uploadedAt | date: 'medium' }}
+                </div>
+              </div>
+              <button mat-stroked-button type="button" (click)="openDocument(doc.id, doc.originalFileName)">
+                <mat-icon>download</mat-icon>
+                Open
+              </button>
+            </div>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+  }
+</section>

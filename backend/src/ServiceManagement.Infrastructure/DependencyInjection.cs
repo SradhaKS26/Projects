@@ -8,8 +8,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using ServiceManagement.Application.Auth.Interfaces;
 using ServiceManagement.Application.Catalog.Interfaces;
+using ServiceManagement.Application.Common.Storage;
+using ServiceManagement.Application.Providers.Interfaces;
 using ServiceManagement.Application.Roles.Interfaces;
 using ServiceManagement.Application.Users.Interfaces;
+using ServiceManagement.Infrastructure.Storage;
 using ServiceManagement.Domain.Constants;
 using ServiceManagement.Domain.Entities;
 using ServiceManagement.Infrastructure.Auth;
@@ -24,6 +27,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
@@ -90,6 +94,9 @@ public static class DependencyInjection
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IServiceCategoryService, ServiceCategoryService>();
         services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
+        services.AddScoped<IDocumentRequirementService, DocumentRequirementService>();
+        services.AddScoped<IProviderOnboardingService, ProviderOnboardingService>();
+        services.AddSingleton<IFileStorage, LocalFileStorage>();
 
         return services;
     }

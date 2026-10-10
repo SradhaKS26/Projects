@@ -52,3 +52,23 @@ public class UpdateServiceRequestValidator : AbstractValidator<UpdateServiceRequ
             .When(x => x.EstimatedDurationMinutes.HasValue);
     }
 }
+
+public class CreateDocumentRequirementRequestValidator : AbstractValidator<CreateDocumentRequirementRequest>
+{
+    public CreateDocumentRequirementRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(150);
+        RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.SortOrder).GreaterThanOrEqualTo(0).LessThanOrEqualTo(1000);
+    }
+}
+
+public class UpdateDocumentRequirementRequestValidator : AbstractValidator<UpdateDocumentRequirementRequest>
+{
+    public UpdateDocumentRequirementRequestValidator()
+    {
+        RuleFor(x => x.Name).NotEmpty().MaximumLength(150);
+        RuleFor(x => x.Description).MaximumLength(2000);
+        RuleFor(x => x.SortOrder).GreaterThanOrEqualTo(0).LessThanOrEqualTo(1000);
+    }
+}

@@ -1,4 +1,6 @@
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -30,7 +32,13 @@ try
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+            options.JsonSerializerOptions.Converters.Add(
+                new JsonStringEnumConverter(System.Text.Json.JsonNamingPolicy.CamelCase, allowIntegerValues: true));
         });
+    builder.Services.Configure<FormOptions>(options =>
+    {
+        options.MultipartBodyLengthLimit = 11 * 1024 * 1024;
+    });
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
     {
@@ -106,7 +114,10 @@ try
     // (e.g. invalid login) still include Access-Control-Allow-Origin.
     app.UseCors("Default");
     app.UseMiddleware<ExceptionHandlingMiddleware>();
-    app.UseRateLimiter();
+    if (!app.Environment.IsEnvironment("Testing"))
+    {
+        app.UseRateLimiter();
+    }
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapControllers();

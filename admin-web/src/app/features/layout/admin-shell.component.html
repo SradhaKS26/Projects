@@ -2,19 +2,29 @@
   <mat-sidenav mode="side" opened class="sidenav">
     <div class="brand">Service Management</div>
     <mat-nav-list>
-      <a mat-list-item routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-      <a mat-list-item routerLink="/users" routerLinkActive="active">Users</a>
-      <a mat-list-item routerLink="/providers" routerLinkActive="active">Providers</a>
-      <a mat-list-item routerLink="/services" routerLinkActive="active">Services</a>
-      <a mat-list-item routerLink="/service-categories" routerLinkActive="active">Categories</a>
-      <a mat-list-item routerLink="/service-requests" routerLinkActive="active">Requests</a>
-      <a mat-list-item routerLink="/roles" routerLinkActive="active">Roles</a>
+      @if (auth.isProviderOnly()) {
+        <a mat-list-item routerLink="/my-application" routerLinkActive="active">My application</a>
+      } @else {
+        <a mat-list-item routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+        @if (auth.hasPermission('ManageUsers')) {
+          <a mat-list-item routerLink="/users" routerLinkActive="active">Users</a>
+        }
+        @if (auth.hasPermission('ManageProviders')) {
+          <a mat-list-item routerLink="/providers" routerLinkActive="active">Providers</a>
+        }
+        <a mat-list-item routerLink="/services" routerLinkActive="active">Services</a>
+        <a mat-list-item routerLink="/service-categories" routerLinkActive="active">Categories</a>
+        <a mat-list-item routerLink="/service-requests" routerLinkActive="active">Requests</a>
+        @if (auth.hasPermission('ManageRoles')) {
+          <a mat-list-item routerLink="/roles" routerLinkActive="active">Roles</a>
+        }
+      }
     </mat-nav-list>
   </mat-sidenav>
 
   <mat-sidenav-content>
     <mat-toolbar color="primary">
-      <span>Admin Portal</span>
+      <span>{{ auth.isProviderOnly() ? 'Provider Portal' : 'Admin Portal' }}</span>
       <span class="spacer"></span>
       <span class="user">{{ auth.user()?.firstName }} {{ auth.user()?.lastName }}</span>
       <button mat-button type="button" (click)="logout()">Logout</button>

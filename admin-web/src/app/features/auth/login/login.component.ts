@@ -48,7 +48,7 @@ export class LoginComponent {
     this.auth.login(this.form.getRawValue()).subscribe({
       next: async () => {
         this.loading.set(false);
-        await this.router.navigateByUrl('/dashboard');
+        await this.router.navigateByUrl(this.auth.homePath());
       },
       error: (err) => {
         this.loading.set(false);

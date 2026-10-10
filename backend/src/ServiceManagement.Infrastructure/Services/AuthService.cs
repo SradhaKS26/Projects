@@ -85,7 +85,8 @@ public class AuthService : IAuthService
             {
                 UserId = user.Id,
                 AvailabilityStatus = AvailabilityStatus.Unavailable,
-                IsActive = true
+                IsActive = true,
+                ApprovalStatus = ProviderApprovalStatus.Pending
             });
             await _db.SaveChangesAsync(cancellationToken);
         }

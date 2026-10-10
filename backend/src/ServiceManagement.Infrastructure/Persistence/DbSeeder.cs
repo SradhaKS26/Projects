@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ServiceManagement.Domain.Constants;
 using ServiceManagement.Domain.Entities;
+using ServiceManagement.Domain.Enums;
 
 namespace ServiceManagement.Infrastructure.Persistence;
 
@@ -79,13 +80,17 @@ public static class DbSeeder
             db.ServiceProviderProfiles.Add(new ServiceProviderProfile
             {
                 UserId = provider.Id,
-                AvailabilityStatus = Domain.Enums.AvailabilityStatus.Available,
-                IsActive = true
+                Description = "Demo provider awaiting review.",
+                AvailabilityStatus = AvailabilityStatus.Unavailable,
+                IsActive = true,
+                ApprovalStatus = ProviderApprovalStatus.Pending
             });
             await db.SaveChangesAsync();
         }
 
         await SeedCatalogAsync(db, logger);
+        await SeedWorkedExampleAsync(db, logger);
+        await SeedDemoProviderApplicationAsync(db, provider, logger);
     }
 
     /// <summary>
@@ -151,6 +156,159 @@ public static class DbSeeder
 
         await db.SaveChangesAsync();
         logger.LogInformation("Seeded {Count} sample service categories", catalog.Length);
+    }
+
+    /// <summary>
+    /// Worked example used throughout onboarding docs and demos. Vehicle types are
+    /// ordinary catalog services (not a separate domain concept). Seed data only —
+    /// application code never branches on these names.
+    /// </summary>
+    private static async Task SeedWorkedExampleAsync(AppDbContext db, ILogger logger)
+    {
+        var taxi = await db.ServiceCategories
+            .Include(c => c.Services)
+            .Include(c => c.DocumentRequirements)
+            .FirstOrDefaultAsync(c => c.Name == "Taxi");
+
+        if (taxi is null)
+        {
+            taxi = new ServiceCategory
+            {
+                Name = "Taxi",
+                Description = "On-demand passenger trips. Vehicle types are services with their own base price.",
+                IsActive = true
+            };
+
+            taxi.Services.Add(new Service
+            {
+                Name = "Auto",
+                Description = "Compact three-wheeler for short trips.",
+                BasePrice = 8.00m,
+                EstimatedDurationMinutes = 20,
+                IsActive = true
+            });
+            taxi.Services.Add(new Service
+            {
+                Name = "Sedan",
+                Description = "Standard four-door car.",
+                BasePrice = 12.00m,
+                EstimatedDurationMinutes = 25,
+                IsActive = true
+            });
+            taxi.Services.Add(new Service
+            {
+                Name = "SUV",
+                Description = "Larger vehicle for more passengers or luggage.",
+                BasePrice = 18.00m,
+                EstimatedDurationMinutes = 30,
+                IsActive = true
+            });
+
+            db.ServiceCategories.Add(taxi);
+            await db.SaveChangesAsync();
+            logger.LogInformation("Seeded Taxi worked-example category with Auto, Sedan, and SUV services");
+        }
+
+        await EnsureDocumentRequirementsAsync(
+            db,
+            taxi.Id,
+            [
+                ("Driving Licence", "Valid licence for the vehicle class being offered.", 0),
+                ("Vehicle Registration", "Registration document for the vehicle that will fulfill trips.", 1),
+                ("Insurance Certificate", "Current motor insurance covering passenger transport.", 2)
+            ]);
+
+        var cooking = await db.ServiceCategories.FirstOrDefaultAsync(c => c.Name == "Cooking");
+        if (cooking is not null)
+        {
+            await EnsureDocumentRequirementsAsync(
+                db,
+                cooking.Id,
+                [
+                    ("Food Safety Certificate", "Proof of food-hygiene training required to prepare meals for customers.", 0)
+                ]);
+        }
+    }
+
+    private static async Task EnsureDocumentRequirementsAsync(
+        AppDbContext db,
+        Guid categoryId,
+        IReadOnlyList<(string Name, string Description, int SortOrder)> requirements)
+    {
+        var existing = await db.CategoryDocumentRequirements
+            .Where(r => r.CategoryId == categoryId)
+            .Select(r => r.Name.ToLower())
+            .ToListAsync();
+
+        var existingSet = existing.ToHashSet();
+        var added = false;
+
+        foreach (var (name, description, sortOrder) in requirements)
+        {
+            if (existingSet.Contains(name.ToLowerInvariant()))
+            {
+                continue;
+            }
+
+            db.CategoryDocumentRequirements.Add(new CategoryDocumentRequirement
+            {
+                CategoryId = categoryId,
+                Name = name,
+                Description = description,
+                IsRequired = true,
+                SortOrder = sortOrder
+            });
+            added = true;
+        }
+
+        if (added)
+        {
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private static async Task SeedDemoProviderApplicationAsync(
+        AppDbContext db,
+        ApplicationUser? provider,
+        ILogger logger)
+    {
+        if (provider is null)
+        {
+            return;
+        }
+
+        var profile = await db.ServiceProviderProfiles
+            .Include(p => p.ProviderServices)
+            .FirstOrDefaultAsync(p => p.UserId == provider.Id);
+        if (profile is null || profile.ProviderServices.Count > 0)
+        {
+            return;
+        }
+
+        var services = await db.Services
+            .Include(s => s.Category)
+            .Where(s => s.Category.Name == "Taxi" && (s.Name == "Auto" || s.Name == "Sedan"))
+            .ToListAsync();
+
+        if (services.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var service in services)
+        {
+            profile.ProviderServices.Add(new ProviderService
+            {
+                ProviderProfileId = profile.Id,
+                ServiceId = service.Id,
+                Status = ProviderServiceStatus.Pending,
+                AppliedAt = DateTime.UtcNow
+            });
+        }
+
+        profile.Description ??= "Demo provider awaiting review.";
+        await db.SaveChangesAsync();
+        logger.LogInformation("Seeded a pending demo provider application");
     }
 
     private static async Task<ApplicationUser?> EnsureUserAsync(
