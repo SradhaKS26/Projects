@@ -152,6 +152,12 @@ class _ProviderApplicationScreenState
     }
   }
 
+  Future<void> _signOut() async {
+    await ref.read(authRepositoryProvider).logout();
+    if (!mounted) return;
+    context.go('/login');
+  }
+
   Future<void> _setAvailability(String status) async {
     try {
       final profile =
@@ -178,14 +184,10 @@ class _ProviderApplicationScreenState
       appBar: AppBar(
         title: const Text('My application'),
         actions: [
-          TextButton(
-            onPressed: () async {
-              await ref.read(authRepositoryProvider).logout();
-              if (context.mounted) {
-                context.go('/login');
-              }
-            },
-            child: const Text('Sign out'),
+          IconButton(
+            tooltip: 'Sign out',
+            icon: const Icon(Icons.logout),
+            onPressed: _signOut,
           ),
         ],
       ),
@@ -222,8 +224,13 @@ class _ProviderApplicationScreenState
                       const SizedBox(height: 12),
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: [
                           FilledButton(
+                            onPressed: () => context.go('/home'),
+                            child: const Text('Continue to home'),
+                          ),
+                          FilledButton.tonal(
                             onPressed: () => _setAvailability('available'),
                             child: const Text('Available'),
                           ),
@@ -320,6 +327,12 @@ class _ProviderApplicationScreenState
                         child: Text(_saving ? 'Saving…' : 'Save application'),
                       ),
                     ],
+                    const SizedBox(height: 24),
+                    OutlinedButton.icon(
+                      onPressed: _signOut,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Sign out'),
+                    ),
                   ],
                 ],
               ),
