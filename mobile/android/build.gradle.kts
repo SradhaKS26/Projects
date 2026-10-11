@@ -19,18 +19,26 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Plugins such as file_picker still declare compileSdk 34; the lifecycle
-// plugin they depend on now requires 36. AGP 9 removed compileSdk from
-// BaseExtension, so set it on the public library/application DSLs instead.
-subprojects {
-    pluginManager.withPlugin("com.android.library") {
-        extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
-            compileSdk = 36
+// file_picker still writes compileSdk 34 in its own android {} block. Setting
+// 36 when the plugin is applied is overwritten; afterEvaluate runs after that.
+fun Project.forceCompileSdk(version: Int) {
+    val android = extensions.findByName("android") ?: return
+    val setter =
+        android.javaClass.methods.firstOrNull { method ->
+            method.name in listOf("setCompileSdk", "setCompileSdkVersion") &&
+                method.parameterCount == 1 &&
+                (method.parameterTypes[0] == Int::class.javaPrimitiveType ||
+                    method.parameterTypes[0] == Integer::class.java)
         }
-    }
-    pluginManager.withPlugin("com.android.application") {
-        extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") {
-            compileSdk = 36
+    setter?.invoke(android, version)
+}
+
+subprojects {
+    afterEvaluate {
+        if (pluginManager.hasPlugin("com.android.library") ||
+            pluginManager.hasPlugin("com.android.application")
+        ) {
+            forceCompileSdk(36)
         }
     }
 }
