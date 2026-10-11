@@ -20,13 +20,17 @@ subprojects {
 }
 
 // Plugins such as file_picker still declare compileSdk 34; the lifecycle
-// plugin they depend on now requires 36. Force every Android subproject up.
+// plugin they depend on now requires 36. AGP 9 removed compileSdk from
+// BaseExtension, so set it on the public library/application DSLs instead.
 subprojects {
-    afterEvaluate {
-        extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.let { android ->
-            if ((android.compileSdk ?: 0) < 36) {
-                android.compileSdk = 36
-            }
+    pluginManager.withPlugin("com.android.library") {
+        extensions.configure<com.android.build.api.dsl.LibraryExtension>("android") {
+            compileSdk = 36
+        }
+    }
+    pluginManager.withPlugin("com.android.application") {
+        extensions.configure<com.android.build.api.dsl.ApplicationExtension>("android") {
+            compileSdk = 36
         }
     }
 }
