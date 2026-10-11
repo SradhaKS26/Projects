@@ -73,6 +73,6 @@ Default seeded admin (change immediately in any shared environment):
 
 - Phase 2: service categories, services, pricing, admin CRUD, Flutter browsing — see [PHASE2.md](PHASE2.md)
 - Phase 3A: provider onboarding and approval — see [PHASE3A.md](PHASE3A.md)
-- Phase 3B: service request broadcast, first-to-accept, expiry
+- Phase 3B: service request broadcast, first-to-accept, expiry — see [PHASE3B.md](PHASE3B.md)
 - Phase 4: provider workflows + notifications
 - Phase 5: customer tracking, history, reviews

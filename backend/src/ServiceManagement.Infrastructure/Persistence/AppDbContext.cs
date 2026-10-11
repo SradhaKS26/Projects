@@ -167,6 +167,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             entity.Property(x => x.Notes).HasMaxLength(4000);
             entity.Property(x => x.Price).HasPrecision(18, 2);
+            entity.HasIndex(x => new { x.Status, x.ExpiresAt });
             entity.HasOne(x => x.Customer)
                 .WithMany()
                 .HasForeignKey(x => x.CustomerId)

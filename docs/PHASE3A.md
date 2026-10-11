@@ -104,7 +104,8 @@ Documents: PDF, JPEG, PNG, or WebP, max 10 MB. Stored under
 - `/providers/:id` — review documents, applied services, approve / reject /
   suspend / reinstate, and the operational `IsActive` toggle
 - Categories gain a document-requirements dialog
-- Unapproved providers who log in see only `/my-application`
+- Unapproved providers who log in use the same app tabs; onboarding status is
+  the Application tab (updated in Phase 3B)
 
 Also in this phase (known bugs):
 
@@ -113,9 +114,10 @@ Also in this phase (known bugs):
 - A 401 interceptor retries `/api/auth/refresh` once, then logs out
 - Catalog create/edit/delete buttons render only when the user has `ManageServices`
 
-**Flutter** stores the user from login/register. Unapproved providers are sent to
-`/provider/application` (status, service selection, document upload). Customers
-keep the existing catalog browse flow.
+**Flutter** stores the user from login/register. Providers (including pending)
+use Home / Services / Jobs / Profile plus an **Application** tab for onboarding
+status, service selection, and document upload. Customers keep the catalog
+browse flow (Phase 3B adds Request).
 
 ## Seed data
 
@@ -138,6 +140,6 @@ be a single atomic conditional update, not read-then-write.
 
 ## Next phases
 
-- Phase 3B: customer request broadcast to eligible providers, claim, expiry
+- Phase 3B: customer request broadcast to eligible providers, claim, expiry — see [PHASE3B.md](PHASE3B.md)
 - Phase 4: provider workflows + notifications
 - Phase 5: customer tracking, history, reviews

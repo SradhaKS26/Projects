@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../authentication/data/auth_repository.dart';
 import '../data/catalog_repository.dart';
 
 class ServicesScreen extends ConsumerWidget {
@@ -106,6 +107,9 @@ class CategoryServicesScreen extends ConsumerWidget {
                 final service = items[index];
                 final duration = service.estimatedDurationMinutes;
 
+                final isCustomer =
+                    ref.watch(currentUserProvider).valueOrNull?.isCustomer == true;
+
                 return Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -145,6 +149,15 @@ class CategoryServicesScreen extends ConsumerWidget {
                               const SizedBox(width: 6),
                               Text('About $duration min'),
                             ],
+                          ),
+                        ],
+                        if (isCustomer) ...[
+                          const SizedBox(height: 12),
+                          FilledButton(
+                            onPressed: () => context.push(
+                              '/request/${service.id}?name=${Uri.encodeComponent(service.name)}&price=${service.basePrice}',
+                            ),
+                            child: const Text('Request'),
                           ),
                         ],
                       ],

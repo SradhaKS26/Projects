@@ -13,6 +13,8 @@ public class ServiceRequestStateMachineTests
     [InlineData(ServiceRequestStatus.InProgress, ServiceRequestStatus.Completed, true)]
     [InlineData(ServiceRequestStatus.Completed, ServiceRequestStatus.InProgress, false)]
     [InlineData(ServiceRequestStatus.Cancelled, ServiceRequestStatus.Pending, false)]
+    [InlineData(ServiceRequestStatus.Pending, ServiceRequestStatus.Expired, true)]
+    [InlineData(ServiceRequestStatus.Expired, ServiceRequestStatus.Accepted, false)]
     public void CanTransition_enforces_lifecycle_rules(
         ServiceRequestStatus from,
         ServiceRequestStatus to,

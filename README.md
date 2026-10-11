@@ -66,10 +66,21 @@ Provider onboarding and approval:
   from `IsActive` and availability
 - Document requirements are configurable per category
 - Admin review UI replaces the Providers placeholder
-- Unapproved providers see only their application status
+- Unapproved providers use the same Home / Services / Jobs / Profile tabs; onboarding status is the **Application** tab
 - Eligibility rule is in place for Phase 3B broadcast
 
 See [docs/PHASE3A.md](docs/PHASE3A.md).
+
+## Phase 3B status
+
+Request broadcast and first-to-accept:
+
+- Customers tap **Request** on a catalog service, enter an address, and wait up to 10 minutes
+- Eligible providers see the job on **Jobs** and the first accept wins (atomic)
+- Names, email, phone, and street address stay hidden until accept
+- Unaccepted requests expire
+
+See [docs/PHASE3B.md](docs/PHASE3B.md).
 
 ## Quick start
 
