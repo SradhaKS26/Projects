@@ -6,7 +6,7 @@ Customers place a request for a catalog service. Eligible providers see it and
 the first valid accept wins. Contact details stay hidden until then. Unaccepted
 requests expire after 10 minutes.
 
-Pending providers keep the normal Home / Services / Jobs / Profile tabs. Their
+Pending providers keep the normal Home / Services / Requests / Profile tabs. Their
 onboarding status lives on the **Application** tab.
 
 ## Design decisions
@@ -26,7 +26,7 @@ onboarding status lives on the **Application** tab.
 4. **Expiry is 10 minutes** (`RequestBroadcast:ExpiryMinutes`). Pending rows
    become `Expired` on read and via a 30-second hosted sweep (disabled in tests).
 
-5. **No SignalR.** Clients poll / pull-to-refresh the Jobs tab.
+5. **No SignalR.** Clients poll / pull-to-refresh the Requests tab.
 
 6. **Customers place requests; providers accept.** Providers do not place
    catalog requests in this phase.
@@ -44,8 +44,8 @@ onboarding status lives on the **Application** tab.
 
 ## Flutter
 
-- **Request** on a service card (customers)
-- **Jobs** tab: customer list + cancel; provider inbox + accept
+- **Request** on a service card (customers) and a Home shortcut
+- **Requests** tab: customer list + cancel; provider inbox + accept
 - **Application** tab (providers only): onboarding status, even while pending
 
 ## Not in this phase

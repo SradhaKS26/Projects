@@ -115,7 +115,7 @@ Also in this phase (known bugs):
 - Catalog create/edit/delete buttons render only when the user has `ManageServices`
 
 **Flutter** stores the user from login/register. Providers (including pending)
-use Home / Services / Jobs / Profile plus an **Application** tab for onboarding
+use Home / Services / Requests / Profile plus an **Application** tab for onboarding
 status, service selection, and document upload. Customers keep the catalog
 browse flow (Phase 3B adds Request).
 

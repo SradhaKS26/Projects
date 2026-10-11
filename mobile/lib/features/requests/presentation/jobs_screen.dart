@@ -15,7 +15,7 @@ class JobsScreen extends ConsumerWidget {
     final isCustomer = user?.isCustomer == true;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Jobs')),
+      appBar: AppBar(title: const Text('Requests')),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(myJobsProvider);
@@ -71,7 +71,7 @@ class JobsScreen extends ConsumerWidget {
               ),
             ],
             if (!isProvider && !isCustomer)
-              const Text('Sign in as a customer or provider to see jobs.'),
+              const Text('Sign in as a customer or provider to see requests.'),
           ],
         ),
       ),

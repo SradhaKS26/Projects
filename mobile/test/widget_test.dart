@@ -30,9 +30,10 @@ void main() {
 
     expect(find.text('Home'), findsWidgets);
     expect(find.text('Services'), findsWidgets);
-    expect(find.text('Jobs'), findsWidgets);
+    expect(find.text('Requests'), findsWidgets);
     expect(find.text('Application'), findsWidgets);
     expect(find.text('Profile'), findsWidgets);
+    expect(find.text('Browse services'), findsOneWidget);
     expect(
       find.textContaining('Browse the catalog'),
       findsOneWidget,
@@ -48,7 +49,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Application'), findsNothing);
-    expect(find.text('Jobs'), findsWidgets);
+    expect(find.text('Requests'), findsWidgets);
   });
 
   testWidgets('customer sees Request on a catalog service', (tester) async {

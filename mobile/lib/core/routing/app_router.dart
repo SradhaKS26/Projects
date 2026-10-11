@@ -95,7 +95,7 @@ class AppShell extends ConsumerWidget {
     final tabs = <_Tab>[
       const _Tab('/home', 'Home', Icons.home_outlined),
       const _Tab('/services', 'Services', Icons.handyman_outlined),
-      const _Tab('/jobs', 'Jobs', Icons.assignment_outlined),
+      const _Tab('/jobs', 'Requests', Icons.assignment_outlined),
     ];
     if (user?.isProvider == true) {
       tabs.add(const _Tab('/application', 'Application', Icons.badge_outlined));

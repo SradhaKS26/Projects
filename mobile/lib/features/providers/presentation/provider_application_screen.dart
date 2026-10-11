@@ -216,8 +216,8 @@ class _ProviderApplicationScreenState
                                   profile.reviewReason != null
                               ? profile.reviewReason!
                               : profile.approvalStatus == 'approved'
-                                  ? 'You can receive work once you are available. Incoming jobs appear on the Jobs tab.'
-                                  : 'You can browse the app while this application is reviewed. Jobs become available after approval.',
+                                  ? 'You can receive work once you are available. Incoming jobs appear on the Requests tab.'
+                                  : 'You can browse the app while this application is reviewed. Requests become available after approval.',
                         ),
                       ),
                     ),
