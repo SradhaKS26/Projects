@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/networking/api_error.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../data/request_repository.dart';
 
@@ -66,11 +67,14 @@ class _CreateRequestScreenState extends ConsumerState<CreateRequestScreen> {
       if (!mounted) return;
       ref.invalidate(myJobsProvider);
       context.go('/jobs');
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = 'Unable to place this request. Check the address and try again.';
+        _error = describeApiError(
+          error,
+          fallback: 'Unable to place this request. Check the address and try again.',
+        );
       });
     }
   }
