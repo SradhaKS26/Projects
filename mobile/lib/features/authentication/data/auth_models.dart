@@ -30,6 +30,7 @@ class AuthUser {
   final List<String> permissions;
 
   bool get isProvider => roles.contains('ServiceProvider');
+  bool get isCustomer => roles.contains('CommonUser');
   bool get isAdministrator => roles.contains('Administrator');
 
   String toJson() => jsonEncode({

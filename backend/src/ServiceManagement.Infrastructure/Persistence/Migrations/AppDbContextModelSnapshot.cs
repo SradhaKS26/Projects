@@ -694,6 +694,9 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("RequestedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -718,6 +721,8 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("ServiceId");
+
+                    b.HasIndex("Status", "ExpiresAt");
 
                     b.ToTable("ServiceRequests");
                 });

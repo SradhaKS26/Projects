@@ -21,6 +21,7 @@ class ProfileScreen extends ConsumerWidget {
             OutlinedButton(
               onPressed: () async {
                 await ref.read(authRepositoryProvider).logout();
+                ref.invalidate(currentUserProvider);
                 if (context.mounted) {
                   context.go('/login');
                 }

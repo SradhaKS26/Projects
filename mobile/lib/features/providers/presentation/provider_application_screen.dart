@@ -154,6 +154,7 @@ class _ProviderApplicationScreenState
 
   Future<void> _signOut() async {
     await ref.read(authRepositoryProvider).logout();
+    ref.invalidate(currentUserProvider);
     if (!mounted) return;
     context.go('/login');
   }
@@ -215,8 +216,8 @@ class _ProviderApplicationScreenState
                                   profile.reviewReason != null
                               ? profile.reviewReason!
                               : profile.approvalStatus == 'approved'
-                                  ? 'You can receive work once you are available.'
-                                  : 'Until you are approved, this is the only screen you can use.',
+                                  ? 'You can receive work once you are available. Incoming jobs appear on the Requests tab.'
+                                  : 'You can browse the app while this application is reviewed. Requests become available after approval.',
                         ),
                       ),
                     ),

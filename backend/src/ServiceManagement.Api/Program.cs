@@ -9,6 +9,7 @@ using ServiceManagement.Api.Middleware;
 using ServiceManagement.Application;
 using ServiceManagement.Infrastructure;
 using ServiceManagement.Infrastructure.Persistence;
+using ServiceManagement.Infrastructure.Services;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -26,6 +27,10 @@ try
 
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
+    if (!builder.Environment.IsEnvironment("Testing"))
+    {
+        builder.Services.AddHostedService<RequestExpiryHostedService>();
+    }
 
     builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>())
         .AddJsonOptions(options =>
