@@ -68,6 +68,7 @@ class ServiceJob {
     required this.status,
     required this.requestedDate,
     required this.expiresAt,
+    this.completedAt,
     this.notes,
     this.address,
     this.customer,
@@ -84,6 +85,7 @@ class ServiceJob {
       status: json['status'] as String? ?? 'pending',
       requestedDate: DateTime.tryParse(json['requestedDate'] as String? ?? '') ?? DateTime.now(),
       expiresAt: DateTime.tryParse(json['expiresAt'] as String? ?? '') ?? DateTime.now(),
+      completedAt: DateTime.tryParse(json['completedAt'] as String? ?? ''),
       notes: json['notes'] as String?,
       address: json['address'] is Map<String, dynamic>
           ? RequestAddress.fromJson(json['address'] as Map<String, dynamic>)
@@ -105,6 +107,7 @@ class ServiceJob {
   final String status;
   final DateTime requestedDate;
   final DateTime expiresAt;
+  final DateTime? completedAt;
   final String? notes;
   final RequestAddress? address;
   final RequestContact? customer;
@@ -112,5 +115,22 @@ class ServiceJob {
 
   bool get isPending => status == 'pending';
   bool get isAccepted => status == 'accepted';
+  bool get isInProgress => status == 'inProgress';
+  bool get isCompleted => status == 'completed';
+  bool get isFailed => status == 'failed';
   bool get isExpired => status == 'expired';
+  bool get isCancelled => status == 'cancelled';
+
+  String get statusLabel {
+    return switch (status) {
+      'pending' => 'Pending',
+      'accepted' => 'Accepted',
+      'inProgress' => 'In progress',
+      'completed' => 'Completed',
+      'failed' => 'Failed',
+      'cancelled' => 'Cancelled',
+      'expired' => 'Expired',
+      _ => status,
+    };
+  }
 }

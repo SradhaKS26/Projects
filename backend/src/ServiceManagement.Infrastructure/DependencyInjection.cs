@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using ServiceManagement.Application.Auth.Interfaces;
 using ServiceManagement.Application.Catalog.Interfaces;
 using ServiceManagement.Application.Common.Storage;
+using ServiceManagement.Application.Notifications.Interfaces;
 using ServiceManagement.Application.Providers.Interfaces;
 using ServiceManagement.Application.Requests.Interfaces;
 using ServiceManagement.Domain.Services;
@@ -103,6 +104,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentRequirementService, DocumentRequirementService>();
         services.AddScoped<IProviderOnboardingService, ProviderOnboardingService>();
         services.AddScoped<IServiceRequestService, ServiceRequestService>();
+        services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
 

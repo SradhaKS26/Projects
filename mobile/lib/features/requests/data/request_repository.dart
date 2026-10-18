@@ -41,13 +41,26 @@ class RequestRepository {
 
   Future<List<ServiceJob>> fetchInbox() => _list('/service-requests/inbox');
 
+  Future<List<ServiceJob>> fetchAssigned() => _list('/service-requests/assigned');
+
   Future<ServiceJob> accept(String id) async {
     final response = await _dio.post<Map<String, dynamic>>('/service-requests/$id/accept');
     return ServiceJob.fromJson(_data(response));
   }
 
+  Future<ServiceJob> start(String id) => _postStatus(id, 'start');
+
+  Future<ServiceJob> complete(String id) => _postStatus(id, 'complete');
+
+  Future<ServiceJob> fail(String id) => _postStatus(id, 'fail');
+
   Future<ServiceJob> cancel(String id) async {
     final response = await _dio.post<Map<String, dynamic>>('/service-requests/$id/cancel');
+    return ServiceJob.fromJson(_data(response));
+  }
+
+  Future<ServiceJob> _postStatus(String id, String action) async {
+    final response = await _dio.post<Map<String, dynamic>>('/service-requests/$id/$action');
     return ServiceJob.fromJson(_data(response));
   }
 
@@ -75,4 +88,8 @@ final myJobsProvider = FutureProvider.autoDispose<List<ServiceJob>>((ref) {
 
 final inboxJobsProvider = FutureProvider.autoDispose<List<ServiceJob>>((ref) {
   return ref.watch(requestRepositoryProvider).fetchInbox();
+});
+
+final assignedJobsProvider = FutureProvider.autoDispose<List<ServiceJob>>((ref) {
+  return ref.watch(requestRepositoryProvider).fetchAssigned();
 });

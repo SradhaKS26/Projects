@@ -141,5 +141,5 @@ be a single atomic conditional update, not read-then-write.
 ## Next phases
 
 - Phase 3B: customer request broadcast to eligible providers, claim, expiry — see [PHASE3B.md](PHASE3B.md)
-- Phase 4: provider workflows + notifications
+- Phase 4: provider workflows + notifications — see [PHASE4.md](PHASE4.md)
 - Phase 5: customer tracking, history, reviews

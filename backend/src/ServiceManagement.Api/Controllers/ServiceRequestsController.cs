@@ -62,6 +62,21 @@ public class ServiceRequestsController : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<ServiceRequestDto>>.Ok(items));
     }
 
+    [HttpGet("assigned")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ServiceRequestDto>>>> Assigned(
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(Roles.ServiceProvider))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<IReadOnlyList<ServiceRequestDto>>.Fail("Only providers have assigned jobs."));
+        }
+
+        var items = await _requests.ListAssignedAsync(User.GetUserId(), cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<ServiceRequestDto>>.Ok(items));
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ApiResponse<ServiceRequestDto>>> GetById(
         Guid id,
@@ -99,5 +114,53 @@ public class ServiceRequestsController : ControllerBase
     {
         var cancelled = await _requests.CancelAsync(User.GetUserId(), id, cancellationToken);
         return Ok(ApiResponse<ServiceRequestDto>.Ok(cancelled, "Request cancelled."));
+    }
+
+    [HttpPost("{id:guid}/start")]
+    public async Task<ActionResult<ApiResponse<ServiceRequestDto>>> Start(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(Roles.ServiceProvider))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<ServiceRequestDto>.Fail("Only the assigned provider can start this job."));
+        }
+
+        var started = await _requests.StartAsync(User.GetUserId(), id, cancellationToken);
+        return Ok(ApiResponse<ServiceRequestDto>.Ok(started, "Job started."));
+    }
+
+    [HttpPost("{id:guid}/complete")]
+    public async Task<ActionResult<ApiResponse<ServiceRequestDto>>> Complete(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(Roles.ServiceProvider))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<ServiceRequestDto>.Fail("Only the assigned provider can complete this job."));
+        }
+
+        var completed = await _requests.CompleteAsync(User.GetUserId(), id, cancellationToken);
+        return Ok(ApiResponse<ServiceRequestDto>.Ok(completed, "Job completed."));
+    }
+
+    [HttpPost("{id:guid}/fail")]
+    public async Task<ActionResult<ApiResponse<ServiceRequestDto>>> Fail(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(Roles.ServiceProvider))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<ServiceRequestDto>.Fail("Only the assigned provider can fail this job."));
+        }
+
+        var failed = await _requests.FailAsync(User.GetUserId(), id, cancellationToken);
+        return Ok(ApiResponse<ServiceRequestDto>.Ok(failed, "Job marked failed."));
     }
 }

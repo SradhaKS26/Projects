@@ -35,7 +35,8 @@ Clients never decide authorization. Every sensitive action is validated server-s
 Terminal alternatives: `Cancelled`, `Rejected`, `Failed`, `Expired`
 
 Transitions are gated by `ServiceRequestStateMachine`. Phase 3B exposes place,
-inbox, atomic accept, cancel, and expiry. Later phases add in-progress/complete.
+inbox, atomic accept, cancel, and expiry. Phase 4 adds start/complete/fail and
+in-app notifications. Phase 5 adds tracking and reviews.
 
 ## Clients
 

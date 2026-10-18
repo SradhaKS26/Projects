@@ -17,6 +17,10 @@ public interface IServiceRequestService
         Guid providerUserId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<ServiceRequestDto>> ListAssignedAsync(
+        Guid providerUserId,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceRequestDto> GetAsync(
         Guid userId,
         bool isProvider,
@@ -31,6 +35,21 @@ public interface IServiceRequestService
 
     Task<ServiceRequestDto> CancelAsync(
         Guid customerUserId,
+        Guid requestId,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceRequestDto> StartAsync(
+        Guid providerUserId,
+        Guid requestId,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceRequestDto> CompleteAsync(
+        Guid providerUserId,
+        Guid requestId,
+        CancellationToken cancellationToken = default);
+
+    Task<ServiceRequestDto> FailAsync(
+        Guid providerUserId,
         Guid requestId,
         CancellationToken cancellationToken = default);
 
