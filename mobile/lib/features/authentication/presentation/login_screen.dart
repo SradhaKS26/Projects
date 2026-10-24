@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/auth_repository.dart';
-import '../../providers/data/provider_repository.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -44,23 +43,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       if (_register) {
-        final session = await ref.read(authRepositoryProvider).register(
+        await ref.read(authRepositoryProvider).register(
               firstName: _firstNameController.text.trim(),
               lastName: _lastNameController.text.trim(),
               email: _emailController.text.trim(),
               password: _passwordController.text,
               role: _role,
             );
-        if (!mounted) return;
-        await _goAfterAuth(session.user.isProvider && !session.user.isAdministrator);
       } else {
-        final session = await ref.read(authRepositoryProvider).login(
+        await ref.read(authRepositoryProvider).login(
               email: _emailController.text.trim(),
               password: _passwordController.text,
             );
-        if (!mounted) return;
-        await _goAfterAuth(session.user.isProvider && !session.user.isAdministrator);
       }
+      if (!mounted) return;
+      ref.invalidate(currentUserProvider);
+      context.go('/home');
     } catch (_) {
       setState(() {
         _error = _register
@@ -71,22 +69,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         setState(() => _loading = false);
       }
-    }
-  }
-
-  Future<void> _goAfterAuth(bool providerOnly) async {
-    if (!providerOnly) {
-      context.go('/home');
-      return;
-    }
-
-    try {
-      final profile = await ref.read(providerRepositoryProvider).fetchMine();
-      if (!mounted) return;
-      context.go(profile.isApproved ? '/home' : '/provider/application');
-    } catch (_) {
-      if (!mounted) return;
-      context.go('/provider/application');
     }
   }
 

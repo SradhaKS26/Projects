@@ -14,6 +14,10 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   );
 });
 
+final currentUserProvider = FutureProvider<AuthUser?>((ref) {
+  return ref.watch(authRepositoryProvider).currentUser();
+});
+
 class AuthRepository {
   AuthRepository({
     required Dio dio,

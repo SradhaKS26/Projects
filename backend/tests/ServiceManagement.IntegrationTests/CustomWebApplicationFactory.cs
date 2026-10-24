@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using ServiceManagement.Domain.Constants;
 using ServiceManagement.Domain.Entities;
+using ServiceManagement.Domain.Services;
 using ServiceManagement.Infrastructure.Persistence;
 
 namespace ServiceManagement.IntegrationTests;
@@ -20,6 +21,7 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private bool _seeded;
 
     public string StorageRoot => _storageRoot;
+    public TestClock Clock { get; } = new(new DateTime(2026, 10, 11, 12, 0, 0, DateTimeKind.Utc));
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -33,6 +35,9 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<AppDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));
+
+            services.RemoveAll(typeof(IClock));
+            services.AddSingleton<IClock>(Clock);
         });
     }
 
