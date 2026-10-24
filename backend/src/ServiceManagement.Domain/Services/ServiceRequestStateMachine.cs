@@ -16,7 +16,8 @@ public static class ServiceRequestStateMachine
                 ServiceRequestStatus.Accepted,
                 ServiceRequestStatus.Assigned,
                 ServiceRequestStatus.Cancelled,
-                ServiceRequestStatus.Rejected
+                ServiceRequestStatus.Rejected,
+                ServiceRequestStatus.Expired
             ],
             [ServiceRequestStatus.Accepted] =
             [
@@ -40,7 +41,8 @@ public static class ServiceRequestStateMachine
             [ServiceRequestStatus.Completed] = [],
             [ServiceRequestStatus.Cancelled] = [],
             [ServiceRequestStatus.Rejected] = [],
-            [ServiceRequestStatus.Failed] = []
+            [ServiceRequestStatus.Failed] = [],
+            [ServiceRequestStatus.Expired] = []
         };
 
     public static bool CanTransition(ServiceRequestStatus from, ServiceRequestStatus to) =>

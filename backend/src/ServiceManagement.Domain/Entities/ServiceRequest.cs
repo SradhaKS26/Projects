@@ -16,6 +16,7 @@ public class ServiceRequest : BaseEntity
 
     public ServiceRequestStatus Status { get; set; } = ServiceRequestStatus.Pending;
     public DateTime RequestedDate { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
     public DateTime? ScheduledDate { get; set; }
     public Guid? AddressId { get; set; }
     public CustomerAddress? Address { get; set; }

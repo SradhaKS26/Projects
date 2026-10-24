@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -9,7 +10,10 @@ using Microsoft.IdentityModel.Tokens;
 using ServiceManagement.Application.Auth.Interfaces;
 using ServiceManagement.Application.Catalog.Interfaces;
 using ServiceManagement.Application.Common.Storage;
+using ServiceManagement.Application.Notifications.Interfaces;
 using ServiceManagement.Application.Providers.Interfaces;
+using ServiceManagement.Application.Requests.Interfaces;
+using ServiceManagement.Domain.Services;
 using ServiceManagement.Application.Roles.Interfaces;
 using ServiceManagement.Application.Users.Interfaces;
 using ServiceManagement.Infrastructure.Storage;
@@ -28,6 +32,7 @@ public static class DependencyInjection
     {
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<FileStorageOptions>(configuration.GetSection(FileStorageOptions.SectionName));
+        services.Configure<RequestBroadcastOptions>(configuration.GetSection(RequestBroadcastOptions.SectionName));
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
@@ -73,7 +78,9 @@ public static class DependencyInjection
                     ValidIssuer = jwt.Issuer,
                     ValidAudience = jwt.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Key)),
-                    ClockSkew = TimeSpan.FromMinutes(1)
+                    ClockSkew = TimeSpan.FromMinutes(1),
+                    RoleClaimType = ClaimTypes.Role,
+                    NameClaimType = ClaimTypes.NameIdentifier
                 };
             });
 
@@ -96,6 +103,9 @@ public static class DependencyInjection
         services.AddScoped<IServiceCatalogService, ServiceCatalogService>();
         services.AddScoped<IDocumentRequirementService, DocumentRequirementService>();
         services.AddScoped<IProviderOnboardingService, ProviderOnboardingService>();
+        services.AddScoped<IServiceRequestService, ServiceRequestService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();
 
         return services;
