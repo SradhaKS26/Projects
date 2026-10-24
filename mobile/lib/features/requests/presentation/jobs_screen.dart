@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/networking/api_error.dart';
 import '../../authentication/data/auth_repository.dart';
+import '../../notifications/data/notification_repository.dart';
 import '../data/request_models.dart';
 import '../data/request_repository.dart';
 
@@ -14,13 +16,33 @@ class JobsScreen extends ConsumerWidget {
     final isProvider = user?.isProvider == true;
     final isCustomer = user?.isCustomer == true;
 
+    Future<void> refresh() async {
+      ref.invalidate(myJobsProvider);
+      ref.invalidate(inboxJobsProvider);
+      ref.invalidate(assignedJobsProvider);
+      ref.invalidate(notificationsProvider);
+    }
+
+    Future<void> run(
+      Future<void> Function() action,
+      String fallback,
+    ) async {
+      try {
+        await action();
+        await refresh();
+      } catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(describeApiError(error, fallback: fallback))),
+          );
+        }
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(title: const Text('Requests')),
       body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(myJobsProvider);
-          ref.invalidate(inboxJobsProvider);
-        },
+        onRefresh: refresh,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -34,19 +56,29 @@ class JobsScreen extends ConsumerWidget {
               _JobSection(
                 asyncJobs: ref.watch(inboxJobsProvider),
                 emptyText: 'No open jobs right now. Pull to refresh.',
-                onAccept: (job) async {
-                  try {
-                    await ref.read(requestRepositoryProvider).accept(job.id);
-                    ref.invalidate(inboxJobsProvider);
-                    ref.invalidate(myJobsProvider);
-                  } catch (_) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not accept. It may have been taken or expired.')),
-                      );
-                    }
-                  }
-                },
+                onAccept: (job) => run(
+                  () => ref.read(requestRepositoryProvider).accept(job.id),
+                  'Could not accept. It may have been taken or expired.',
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text('Your jobs', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              _JobSection(
+                asyncJobs: ref.watch(assignedJobsProvider),
+                emptyText: 'No accepted jobs yet.',
+                onStart: (job) => run(
+                  () => ref.read(requestRepositoryProvider).start(job.id),
+                  'Could not start this job.',
+                ),
+                onComplete: (job) => run(
+                  () => ref.read(requestRepositoryProvider).complete(job.id),
+                  'Could not complete this job.',
+                ),
+                onFail: (job) => run(
+                  () => ref.read(requestRepositoryProvider).fail(job.id),
+                  'Could not mark this job failed.',
+                ),
               ),
               const SizedBox(height: 24),
             ],
@@ -56,18 +88,10 @@ class JobsScreen extends ConsumerWidget {
               _JobSection(
                 asyncJobs: ref.watch(myJobsProvider),
                 emptyText: 'You have not placed a request yet. Open Services and tap Request.',
-                onCancel: (job) async {
-                  try {
-                    await ref.read(requestRepositoryProvider).cancel(job.id);
-                    ref.invalidate(myJobsProvider);
-                  } catch (_) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('This request can no longer be cancelled.')),
-                      );
-                    }
-                  }
-                },
+                onCancel: (job) => run(
+                  () => ref.read(requestRepositoryProvider).cancel(job.id),
+                  'This request can no longer be cancelled.',
+                ),
               ),
             ],
             if (!isProvider && !isCustomer)
@@ -85,12 +109,18 @@ class _JobSection extends StatelessWidget {
     required this.emptyText,
     this.onAccept,
     this.onCancel,
+    this.onStart,
+    this.onComplete,
+    this.onFail,
   });
 
   final AsyncValue<List<ServiceJob>> asyncJobs;
   final String emptyText;
   final Future<void> Function(ServiceJob job)? onAccept;
   final Future<void> Function(ServiceJob job)? onCancel;
+  final Future<void> Function(ServiceJob job)? onStart;
+  final Future<void> Function(ServiceJob job)? onComplete;
+  final Future<void> Function(ServiceJob job)? onFail;
 
   @override
   Widget build(BuildContext context) {
@@ -113,7 +143,15 @@ class _JobSection extends StatelessWidget {
 
         return Column(
           children: [
-            for (final job in jobs) _JobCard(job: job, onAccept: onAccept, onCancel: onCancel),
+            for (final job in jobs)
+              _JobCard(
+                job: job,
+                onAccept: onAccept,
+                onCancel: onCancel,
+                onStart: onStart,
+                onComplete: onComplete,
+                onFail: onFail,
+              ),
           ],
         );
       },
@@ -122,11 +160,21 @@ class _JobSection extends StatelessWidget {
 }
 
 class _JobCard extends StatelessWidget {
-  const _JobCard({required this.job, this.onAccept, this.onCancel});
+  const _JobCard({
+    required this.job,
+    this.onAccept,
+    this.onCancel,
+    this.onStart,
+    this.onComplete,
+    this.onFail,
+  });
 
   final ServiceJob job;
   final Future<void> Function(ServiceJob job)? onAccept;
   final Future<void> Function(ServiceJob job)? onCancel;
+  final Future<void> Function(ServiceJob job)? onStart;
+  final Future<void> Function(ServiceJob job)? onComplete;
+  final Future<void> Function(ServiceJob job)? onFail;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +183,7 @@ class _JobCard extends StatelessWidget {
         ? 'Expired'
         : job.isPending
             ? '${remaining.inMinutes} min left'
-            : job.status;
+            : job.statusLabel;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -171,7 +219,19 @@ class _JobCard extends StatelessWidget {
               const SizedBox(height: 12),
               FilledButton(onPressed: () => onAccept!(job), child: const Text('Accept')),
             ],
-            if (job.isPending && onCancel != null) ...[
+            if (job.isAccepted && onStart != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(onPressed: () => onStart!(job), child: const Text('Start job')),
+            ],
+            if (job.isInProgress && onComplete != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(onPressed: () => onComplete!(job), child: const Text('Complete')),
+            ],
+            if (job.isInProgress && onFail != null) ...[
+              const SizedBox(height: 8),
+              OutlinedButton(onPressed: () => onFail!(job), child: const Text('Could not complete')),
+            ],
+            if ((job.isPending || job.isAccepted || job.isInProgress) && onCancel != null) ...[
               const SizedBox(height: 12),
               OutlinedButton(onPressed: () => onCancel!(job), child: const Text('Cancel request')),
             ],

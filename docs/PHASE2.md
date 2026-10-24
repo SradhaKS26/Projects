@@ -108,5 +108,5 @@ Phase 3A / 3B.
 
 - Phase 3A: provider onboarding and approval — see [PHASE3A.md](PHASE3A.md)
 - Phase 3B: service request broadcast, first-to-accept, expiry — see [PHASE3B.md](PHASE3B.md)
-- Phase 4: provider workflows + notifications
+- Phase 4: provider workflows + notifications — see [PHASE4.md](PHASE4.md)
 - Phase 5: customer tracking, history, reviews

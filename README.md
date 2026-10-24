@@ -82,6 +82,16 @@ Request broadcast and first-to-accept:
 
 See [docs/PHASE3B.md](docs/PHASE3B.md).
 
+## Phase 4 status
+
+Provider job workflow and in-app notifications:
+
+- Assigned provider starts, completes, or fails a job
+- Customers see status on Requests; Home shows Updates
+- No SignalR — pull to refresh
+
+See [docs/PHASE4.md](docs/PHASE4.md).
+
 ## Quick start
 
 ### 1. Database

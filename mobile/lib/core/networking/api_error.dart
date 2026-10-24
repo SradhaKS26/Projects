@@ -19,7 +19,7 @@ String describeApiError(Object error, {required String fallback}) {
 
   final status = error.response?.statusCode;
   if (status == 404) {
-    return 'The request API is not running. Restart the backend on the Phase 3B branch, then try again.';
+    return 'The request API is not running. Restart the backend, then try again.';
   }
   if (status == 403) {
     return 'Only customers can place requests. Sign in as customer@test.local.';

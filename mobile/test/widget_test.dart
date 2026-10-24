@@ -6,6 +6,7 @@ import 'package:service_management_mobile/core/routing/app_router.dart';
 import 'package:service_management_mobile/features/authentication/data/auth_models.dart';
 import 'package:service_management_mobile/features/authentication/data/auth_repository.dart';
 import 'package:service_management_mobile/features/home/presentation/home_screen.dart';
+import 'package:service_management_mobile/features/notifications/data/notification_repository.dart';
 import 'package:service_management_mobile/features/services/data/catalog_models.dart';
 import 'package:service_management_mobile/features/services/data/catalog_repository.dart';
 import 'package:service_management_mobile/features/services/presentation/services_screen.dart';
@@ -34,10 +35,7 @@ void main() {
     expect(find.text('Application'), findsWidgets);
     expect(find.text('Profile'), findsWidgets);
     expect(find.text('Browse services'), findsOneWidget);
-    expect(
-      find.textContaining('Browse the catalog'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Incoming work is on Requests'), findsOneWidget);
   });
 
   testWidgets('customer does not see Application tab', (tester) async {
@@ -109,6 +107,7 @@ Widget _shell({required AuthUser user}) {
   return ProviderScope(
     overrides: [
       currentUserProvider.overrideWith((ref) async => user),
+      notificationsProvider.overrideWith((ref) async => const []),
     ],
     child: MaterialApp.router(routerConfig: router),
   );

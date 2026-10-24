@@ -39,6 +39,7 @@ public record ServiceRequestDto(
     ServiceRequestStatus Status,
     DateTime RequestedDate,
     DateTime ExpiresAt,
+    DateTime? CompletedAt,
     string? Notes,
     ServiceRequestAddressDto? Address,
     RequestContactDto? Customer,

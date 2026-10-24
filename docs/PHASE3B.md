@@ -50,4 +50,5 @@ onboarding status lives on the **Application** tab.
 
 ## Not in this phase
 
-In-progress / complete workflow, notifications, live tracking, reviews (Phases 4–5).
+Live tracking and reviews (Phase 5). In-progress / complete and in-app
+notifications are Phase 4 — see [PHASE4.md](PHASE4.md).

@@ -154,6 +154,33 @@ public class ServiceRequestService : IServiceRequestService
         return inbox;
     }
 
+    public async Task<IReadOnlyList<ServiceRequestDto>> ListAssignedAsync(
+        Guid providerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        await ExpireOverdueAsync(cancellationToken);
+
+        var ids = await _db.ServiceRequests
+            .AsNoTracking()
+            .Where(r => r.AssignedProviderId == providerUserId)
+            .OrderByDescending(r => r.UpdatedAt ?? r.RequestedDate)
+            .Select(r => r.Id)
+            .ToListAsync(cancellationToken);
+
+        var results = new List<ServiceRequestDto>(ids.Count);
+        foreach (var id in ids)
+        {
+            results.Add(await GetMappedAsync(
+                id,
+                includeCustomer: true,
+                includeProvider: true,
+                includeAddress: true,
+                cancellationToken));
+        }
+
+        return results;
+    }
+
     public async Task<ServiceRequestDto> GetAsync(
         Guid userId,
         bool isProvider,
@@ -272,6 +299,13 @@ public class ServiceRequestService : IServiceRequestService
             profile.UpdatedAt = now;
         }
 
+        Notify(
+            snapshot.CustomerId,
+            "A provider accepted your request",
+            "Open Requests to see contact details and track the job.",
+            requestId,
+            now);
+
         await _db.SaveChangesAsync(cancellationToken);
 
         return await GetMappedAsync(requestId, includeCustomer: true, includeProvider: true, includeAddress: true, cancellationToken);
@@ -300,6 +334,7 @@ public class ServiceRequestService : IServiceRequestService
 
         var now = _clock.UtcNow;
         var old = request.Status;
+        var providerId = request.AssignedProviderId;
         request.Status = ServiceRequestStatus.Cancelled;
         request.UpdatedAt = now;
         AppendHistory(
@@ -310,8 +345,73 @@ public class ServiceRequestService : IServiceRequestService
             changedAt: now,
             notes: "Cancelled by customer.");
 
+        if (providerId is Guid assignedProviderId)
+        {
+            Notify(
+                assignedProviderId,
+                "A customer cancelled a job",
+                "The request you accepted was cancelled.",
+                request.Id,
+                now);
+        }
+
         await _db.SaveChangesAsync(cancellationToken);
+        if (providerId is Guid idleProviderId)
+        {
+            await ReleaseIfIdleAsync(idleProviderId, cancellationToken);
+        }
+
         return await GetMappedAsync(requestId, includeCustomer: true, includeProvider: true, includeAddress: true, cancellationToken);
+    }
+
+    public Task<ServiceRequestDto> StartAsync(
+        Guid providerUserId,
+        Guid requestId,
+        CancellationToken cancellationToken = default) =>
+        TransitionAssignedAsync(
+            providerUserId,
+            requestId,
+            ServiceRequestStatus.InProgress,
+            "Provider started the job.",
+            "Your provider started the job",
+            "Work is in progress. Pull to refresh Requests for updates.",
+            cancellationToken);
+
+    public async Task<ServiceRequestDto> CompleteAsync(
+        Guid providerUserId,
+        Guid requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var completed = await TransitionAssignedAsync(
+            providerUserId,
+            requestId,
+            ServiceRequestStatus.Completed,
+            "Provider completed the job.",
+            "Your request was completed",
+            "The provider marked this job complete.",
+            cancellationToken,
+            after: (request, now) => request.CompletedAt = now);
+
+        await ReleaseIfIdleAsync(providerUserId, cancellationToken);
+        return completed;
+    }
+
+    public async Task<ServiceRequestDto> FailAsync(
+        Guid providerUserId,
+        Guid requestId,
+        CancellationToken cancellationToken = default)
+    {
+        var failed = await TransitionAssignedAsync(
+            providerUserId,
+            requestId,
+            ServiceRequestStatus.Failed,
+            "Provider could not complete the job.",
+            "Your job could not be completed",
+            "The provider marked this job as failed.",
+            cancellationToken);
+
+        await ReleaseIfIdleAsync(providerUserId, cancellationToken);
+        return failed;
     }
 
     public async Task<int> ExpireOverdueAsync(CancellationToken cancellationToken = default)
@@ -342,6 +442,12 @@ public class ServiceRequestService : IServiceRequestService
                 newStatus: ServiceRequestStatus.Expired,
                 changedAt: now,
                 notes: "Expired without an accept.");
+            Notify(
+                request.CustomerId,
+                "Your request expired",
+                "No provider accepted in time. Place a new request from Services.",
+                request.Id,
+                now);
         }
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -388,6 +494,89 @@ public class ServiceRequestService : IServiceRequestService
         request.UpdatedAt = now;
         await _db.SaveChangesAsync(cancellationToken);
         return 1;
+    }
+
+    private async Task<ServiceRequestDto> TransitionAssignedAsync(
+        Guid providerUserId,
+        Guid requestId,
+        ServiceRequestStatus target,
+        string historyNotes,
+        string notificationTitle,
+        string notificationBody,
+        CancellationToken cancellationToken,
+        Action<ServiceRequest, DateTime>? after = null)
+    {
+        await ExpireOverdueAsync(cancellationToken);
+
+        var request = await _db.ServiceRequests
+            .FirstOrDefaultAsync(r => r.Id == requestId, cancellationToken)
+            ?? throw new NotFoundException("Service request was not found.");
+
+        if (request.AssignedProviderId != providerUserId)
+        {
+            throw new ForbiddenException("Only the assigned provider can update this job.");
+        }
+
+        if (!ServiceRequestStateMachine.CanTransition(request.Status, target))
+        {
+            throw new ConflictException($"This request cannot move to {target}.");
+        }
+
+        var now = _clock.UtcNow;
+        var old = request.Status;
+        request.Status = target;
+        request.UpdatedAt = now;
+        after?.Invoke(request, now);
+        AppendHistory(request.Id, providerUserId, old, target, now, historyNotes);
+        Notify(request.CustomerId, notificationTitle, notificationBody, request.Id, now);
+        await _db.SaveChangesAsync(cancellationToken);
+        return await GetMappedAsync(
+            requestId,
+            includeCustomer: true,
+            includeProvider: true,
+            includeAddress: true,
+            cancellationToken);
+    }
+
+    private async Task ReleaseIfIdleAsync(Guid providerUserId, CancellationToken cancellationToken)
+    {
+        var stillBusy = await _db.ServiceRequests.AnyAsync(
+            r => r.AssignedProviderId == providerUserId
+                && (r.Status == ServiceRequestStatus.Accepted || r.Status == ServiceRequestStatus.InProgress),
+            cancellationToken);
+
+        if (stillBusy)
+        {
+            return;
+        }
+
+        var profile = await LoadProviderProfileAsync(providerUserId, cancellationToken);
+        if (profile is null || profile.AvailabilityStatus != AvailabilityStatus.Busy)
+        {
+            return;
+        }
+
+        profile.AvailabilityStatus = AvailabilityStatus.Available;
+        profile.UpdatedAt = _clock.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+    }
+
+    private void Notify(
+        Guid userId,
+        string title,
+        string body,
+        Guid requestId,
+        DateTime at)
+    {
+        _db.UserNotifications.Add(new UserNotification
+        {
+            UserId = userId,
+            ServiceRequestId = requestId,
+            Title = title,
+            Body = body,
+            IsRead = false,
+            CreatedAt = at
+        });
     }
 
     private void AppendHistory(
@@ -441,6 +630,7 @@ public class ServiceRequestService : IServiceRequestService
                 r.Status,
                 r.RequestedDate,
                 r.ExpiresAt,
+                r.CompletedAt,
                 r.Notes,
                 Address = r.Address == null
                     ? null
@@ -470,10 +660,8 @@ public class ServiceRequestService : IServiceRequestService
             })
             .FirstAsync(cancellationToken);
 
-        var contactsRevealed = row.Status is ServiceRequestStatus.Accepted
-            or ServiceRequestStatus.Assigned
-            or ServiceRequestStatus.InProgress
-            or ServiceRequestStatus.Completed;
+        var contactsRevealed = row.Status is not ServiceRequestStatus.Pending
+            and not ServiceRequestStatus.Expired;
 
         return new ServiceRequestDto(
             row.Id,
@@ -484,6 +672,7 @@ public class ServiceRequestService : IServiceRequestService
             row.Status,
             row.RequestedDate,
             row.ExpiresAt,
+            row.CompletedAt,
             row.Notes,
             includeAddress ? row.Address : null,
             includeCustomer && contactsRevealed ? row.Customer : null,
