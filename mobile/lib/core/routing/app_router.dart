@@ -50,6 +50,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               serviceId: state.pathParameters['serviceId']!,
               serviceName: state.uri.queryParameters['name'] ?? 'Service',
               price: double.tryParse(state.uri.queryParameters['price'] ?? '') ?? 0,
+              fulfillmentKind: state.uri.queryParameters['kind'] ?? 'onSite',
             ),
           ),
           GoRoute(

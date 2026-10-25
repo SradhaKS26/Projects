@@ -56,6 +56,55 @@ class RequestAddress {
           .whereType<String>()
           .where((part) => part.isNotEmpty)
           .join(', ');
+
+  String get area =>
+      [city, state].where((part) => part.isNotEmpty).join(', ');
+}
+
+class JobTrip {
+  const JobTrip({
+    required this.kind,
+    this.pickup,
+    this.dropoff,
+    this.passengerCount,
+    this.parcelDescription,
+    this.recipientName,
+    this.recipientPhone,
+  });
+
+  factory JobTrip.fromJson(Map<String, dynamic> json) {
+    return JobTrip(
+      kind: json['kind'] as String? ?? 'onSite',
+      pickup: json['pickup'] is Map<String, dynamic>
+          ? RequestAddress.fromJson(json['pickup'] as Map<String, dynamic>)
+          : null,
+      dropoff: json['dropoff'] is Map<String, dynamic>
+          ? RequestAddress.fromJson(json['dropoff'] as Map<String, dynamic>)
+          : null,
+      passengerCount: json['passengerCount'] as int?,
+      parcelDescription: json['parcelDescription'] as String?,
+      recipientName: json['recipientName'] as String?,
+      recipientPhone: json['recipientPhone'] as String?,
+    );
+  }
+
+  final String kind;
+  final RequestAddress? pickup;
+  final RequestAddress? dropoff;
+  final int? passengerCount;
+  final String? parcelDescription;
+  final String? recipientName;
+  final String? recipientPhone;
+
+  bool get isRide => kind == 'ride';
+  bool get isParcel => kind == 'parcel';
+  bool get isPointToPoint => isRide || isParcel;
+
+  String get routeLabel {
+    final from = pickup?.summary.isNotEmpty == true ? pickup!.summary : pickup?.area ?? 'Pickup';
+    final to = dropoff?.summary.isNotEmpty == true ? dropoff!.summary : dropoff?.area ?? 'Drop-off';
+    return '$from → $to';
+  }
 }
 
 class JobReview {
@@ -142,6 +191,12 @@ class ServiceJob {
     this.providerReviewCount = 0,
     this.review,
     this.timeline = const [],
+    this.fulfillmentKind = 'onSite',
+    this.trip,
+    this.passengerCount,
+    this.parcelDescription,
+    this.recipientName,
+    this.recipientPhone,
   });
 
   factory ServiceJob.fromJson(Map<String, dynamic> json) {
@@ -176,6 +231,14 @@ class ServiceJob {
               .map(JobStatusEvent.fromJson)
               .toList(growable: false)
           : const [],
+      fulfillmentKind: json['fulfillmentKind'] as String? ?? 'onSite',
+      trip: json['trip'] is Map<String, dynamic>
+          ? JobTrip.fromJson(json['trip'] as Map<String, dynamic>)
+          : null,
+      passengerCount: json['passengerCount'] as int?,
+      parcelDescription: json['parcelDescription'] as String?,
+      recipientName: json['recipientName'] as String?,
+      recipientPhone: json['recipientPhone'] as String?,
     );
   }
 
@@ -196,6 +259,15 @@ class ServiceJob {
   final int providerReviewCount;
   final JobReview? review;
   final List<JobStatusEvent> timeline;
+  final String fulfillmentKind;
+  final JobTrip? trip;
+  final int? passengerCount;
+  final String? parcelDescription;
+  final String? recipientName;
+  final String? recipientPhone;
+
+  bool get isRide => (trip?.isRide ?? fulfillmentKind == 'ride');
+  bool get isParcel => (trip?.isParcel ?? fulfillmentKind == 'parcel');
 
   bool get isPending => status == 'pending';
   bool get isAccepted => status == 'accepted';

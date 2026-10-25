@@ -90,6 +90,7 @@ public static class DbSeeder
 
         await SeedCatalogAsync(db, logger);
         await SeedWorkedExampleAsync(db, logger);
+        await EnsureFulfillmentKindsAsync(db);
         await SeedDemoProviderApplicationAsync(db, provider, logger);
     }
 
@@ -136,7 +137,8 @@ public static class DbSeeder
             {
                 Name = categoryName,
                 Description = categoryDescription,
-                IsActive = true
+                IsActive = true,
+                FulfillmentKind = categoryName == "Delivery" ? FulfillmentKind.Parcel : FulfillmentKind.OnSite
             };
 
             foreach (var (name, price, minutes, description) in services)
@@ -176,7 +178,8 @@ public static class DbSeeder
             {
                 Name = "Taxi",
                 Description = "On-demand passenger trips. Vehicle types are services with their own base price.",
-                IsActive = true
+                IsActive = true,
+                FulfillmentKind = FulfillmentKind.Ride
             };
 
             taxi.Services.Add(new Service
@@ -227,6 +230,43 @@ public static class DbSeeder
                 [
                     ("Food Safety Certificate", "Proof of food-hygiene training required to prepare meals for customers.", 0)
                 ]);
+        }
+
+        var delivery = await db.ServiceCategories.FirstOrDefaultAsync(c => c.Name == "Delivery");
+        if (delivery is not null)
+        {
+            await EnsureDocumentRequirementsAsync(
+                db,
+                delivery.Id,
+                [
+                    ("Government ID", "Photo ID of the person who will pick up and drop off parcels.", 0),
+                    ("Proof of Address", "Utility bill or bank statement for the operating city.", 1)
+                ]);
+        }
+    }
+
+    private static async Task EnsureFulfillmentKindsAsync(AppDbContext db)
+    {
+        var changed = false;
+        var taxi = await db.ServiceCategories.FirstOrDefaultAsync(c => c.Name == "Taxi");
+        if (taxi is not null && taxi.FulfillmentKind != FulfillmentKind.Ride)
+        {
+            taxi.FulfillmentKind = FulfillmentKind.Ride;
+            taxi.UpdatedAt = DateTime.UtcNow;
+            changed = true;
+        }
+
+        var delivery = await db.ServiceCategories.FirstOrDefaultAsync(c => c.Name == "Delivery");
+        if (delivery is not null && delivery.FulfillmentKind != FulfillmentKind.Parcel)
+        {
+            delivery.FulfillmentKind = FulfillmentKind.Parcel;
+            delivery.UpdatedAt = DateTime.UtcNow;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync();
         }
     }
 
@@ -280,22 +320,21 @@ public static class DbSeeder
         var profile = await db.ServiceProviderProfiles
             .Include(p => p.ProviderServices)
             .FirstOrDefaultAsync(p => p.UserId == provider.Id);
-        if (profile is null || profile.ProviderServices.Count > 0)
+        if (profile is null)
         {
             return;
         }
 
+        var applied = profile.ProviderServices.Select(ps => ps.ServiceId).ToHashSet();
         var services = await db.Services
             .Include(s => s.Category)
-            .Where(s => s.Category.Name == "Taxi" && (s.Name == "Auto" || s.Name == "Sedan"))
+            .Where(s =>
+                (s.Category.Name == "Taxi" && (s.Name == "Auto" || s.Name == "Sedan"))
+                || (s.Category.Name == "Delivery" && s.Name == "Local Package Delivery"))
             .ToListAsync();
 
-        if (services.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var service in services)
+        var added = false;
+        foreach (var service in services.Where(s => !applied.Contains(s.Id)))
         {
             profile.ProviderServices.Add(new ProviderService
             {
@@ -304,6 +343,12 @@ public static class DbSeeder
                 Status = ProviderServiceStatus.Pending,
                 AppliedAt = DateTime.UtcNow
             });
+            added = true;
+        }
+
+        if (!added)
+        {
+            return;
         }
 
         profile.Description ??= "Demo provider awaiting review.";

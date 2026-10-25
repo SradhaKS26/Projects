@@ -20,6 +20,15 @@ public class ServiceRequest : BaseEntity
     public DateTime? ScheduledDate { get; set; }
     public Guid? AddressId { get; set; }
     public CustomerAddress? Address { get; set; }
+
+    public Guid? DestinationAddressId { get; set; }
+    public CustomerAddress? DestinationAddress { get; set; }
+
+    public int? PassengerCount { get; set; }
+    public string? ParcelDescription { get; set; }
+    public string? RecipientName { get; set; }
+    public string? RecipientPhone { get; set; }
+
     public string? Notes { get; set; }
     public decimal Price { get; set; }
     public DateTime? CompletedAt { get; set; }

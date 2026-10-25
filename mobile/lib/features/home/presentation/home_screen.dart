@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../authentication/data/auth_repository.dart';
 import '../../notifications/data/notification_models.dart';
 import '../../notifications/data/notification_repository.dart';
+import '../../services/data/catalog_models.dart';
+import '../../services/data/catalog_repository.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -15,11 +17,19 @@ class HomeScreen extends ConsumerWidget {
     final isProvider = user?.isProvider == true;
     final isCustomer = user?.isCustomer == true;
     final notifications = user == null ? const AsyncValue.data(<AppNotification>[]) : ref.watch(notificationsProvider);
+    final categories = isCustomer
+        ? ref.watch(serviceCategoriesProvider)
+        : const AsyncValue<List<ServiceCategory>>.data([]);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Home')),
       body: RefreshIndicator(
-        onRefresh: () async => ref.invalidate(notificationsProvider),
+        onRefresh: () async {
+          ref.invalidate(notificationsProvider);
+          if (isCustomer) {
+            ref.invalidate(serviceCategoriesProvider);
+          }
+        },
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
@@ -30,17 +40,70 @@ class HomeScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(
               isProvider
-                  ? 'Incoming work is on Requests. Accept, start, and complete jobs there. Approval status is on Application.'
+                  ? 'Taxi and delivery jobs appear on Requests when you are approved, available, and registered for that service.'
                   : isCustomer
-                      ? 'Open Services, pick a type, and tap Request. Track status and rate completed jobs on Requests. Updates appear below.'
+                      ? 'Book a taxi or send a package. Track the trip on Requests and rate the provider when it completes.'
                       : 'Browse the catalog. Customers request a service from Services. Providers use Requests and Application.',
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () => context.go('/services'),
-              icon: const Icon(Icons.handyman_outlined),
-              label: Text(isCustomer ? 'Request a service' : 'Browse services'),
-            ),
+            if (isCustomer)
+              categories.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (_, __) => FilledButton.icon(
+                  onPressed: () => context.go('/services'),
+                  icon: const Icon(Icons.handyman_outlined),
+                  label: const Text('Request a service'),
+                ),
+                data: (items) {
+                  ServiceCategory? firstWhereOrNull(bool Function(ServiceCategory) test) {
+                    for (final item in items) {
+                      if (test(item)) {
+                        return item;
+                      }
+                    }
+                    return null;
+                  }
+
+                  final taxi = firstWhereOrNull((item) => item.isRide) ??
+                      firstWhereOrNull((item) => item.name.toLowerCase() == 'taxi');
+                  final delivery = firstWhereOrNull((item) => item.isParcel) ??
+                      firstWhereOrNull((item) => item.name.toLowerCase() == 'delivery');
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (taxi != null)
+                        FilledButton.icon(
+                          onPressed: () => context.go(
+                            '/services/${taxi.id}?name=${Uri.encodeComponent(taxi.name)}',
+                          ),
+                          icon: const Icon(Icons.local_taxi_outlined),
+                          label: const Text('Book a taxi'),
+                        ),
+                      if (taxi != null && delivery != null) const SizedBox(height: 12),
+                      if (delivery != null)
+                        FilledButton.tonalIcon(
+                          onPressed: () => context.go(
+                            '/services/${delivery.id}?name=${Uri.encodeComponent(delivery.name)}',
+                          ),
+                          icon: const Icon(Icons.local_shipping_outlined),
+                          label: const Text('Send a package'),
+                        ),
+                      if (taxi == null && delivery == null)
+                        FilledButton.icon(
+                          onPressed: () => context.go('/services'),
+                          icon: const Icon(Icons.handyman_outlined),
+                          label: const Text('Request a service'),
+                        ),
+                    ],
+                  );
+                },
+              )
+            else
+              FilledButton.icon(
+                onPressed: () => context.go('/services'),
+                icon: const Icon(Icons.handyman_outlined),
+                label: const Text('Browse services'),
+              ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => context.go('/jobs'),

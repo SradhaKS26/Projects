@@ -56,7 +56,24 @@ This is the last slice of the original V1 marketplace loop:
 Provider list and review screens show the cached customer rating when any
 reviews exist.
 
+## Taxi and delivery
+
+These two catalog kinds are the first to use a real trip form. Other categories
+stay on-site (one address) until they are given their own `FulfillmentKind`.
+
+| Kind | Category | Request form |
+|------|----------|----------------|
+| `Ride` | Taxi (Auto, Sedan, SUV) | Pickup, drop-off, passengers |
+| `Parcel` | Delivery | Pickup, drop-off, parcel, recipient |
+
+Inbox still hides street, phone, and recipient until accept. Providers see
+pickup city → drop-off city so they can decide.
+
+A new migration `AddTaxiAndDeliveryFulfillment` adds `FulfillmentKind` and
+trip fields. Restart the API so it migrates and seeds Taxi=`Ride`, Delivery=`Parcel`.
+
 ## Not in this phase
 
 Payments, live GPS tracking, chat, Redis, email/SMS/push, cancellation
-refunds, and provider-to-customer ratings.
+refunds, and provider-to-customer ratings. More service kinds after taxi and
+delivery are solid.

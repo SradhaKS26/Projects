@@ -40,19 +40,22 @@ public class ServiceRequestService : IServiceRequestService
                 cancellationToken)
             ?? throw new NotFoundException("Service was not found or is not available.");
 
+        var kind = service.Category.FulfillmentKind;
+        ValidateFulfillment(kind, request);
+
         var now = _clock.UtcNow;
-        var address = new CustomerAddress
-        {
-            UserId = customerUserId,
-            AddressLine1 = request.AddressLine1.Trim(),
-            AddressLine2 = string.IsNullOrWhiteSpace(request.AddressLine2) ? null : request.AddressLine2.Trim(),
-            City = request.City.Trim(),
-            State = request.State.Trim(),
-            PostalCode = request.PostalCode.Trim(),
-            Latitude = request.Latitude,
-            Longitude = request.Longitude,
-            IsDefault = false
-        };
+        var address = ToAddress(customerUserId, request.AddressLine1, request.AddressLine2, request.City, request.State, request.PostalCode, request.Latitude, request.Longitude);
+        var destination = FulfillmentRules.RequiresDropoff(kind) && request.Destination is not null
+            ? ToAddress(
+                customerUserId,
+                request.Destination.AddressLine1,
+                request.Destination.AddressLine2,
+                request.Destination.City,
+                request.Destination.State,
+                request.Destination.PostalCode,
+                request.Destination.Latitude,
+                request.Destination.Longitude)
+            : null;
 
         var entity = new ServiceRequest
         {
@@ -62,6 +65,17 @@ public class ServiceRequestService : IServiceRequestService
             RequestedDate = now,
             ExpiresAt = now.AddMinutes(Math.Max(1, _options.ExpiryMinutes)),
             Address = address,
+            DestinationAddress = destination,
+            PassengerCount = FulfillmentRules.RequiresPassengerCount(kind) ? request.PassengerCount : null,
+            ParcelDescription = FulfillmentRules.RequiresParcelDetails(kind)
+                ? request.ParcelDescription?.Trim()
+                : null,
+            RecipientName = FulfillmentRules.RequiresParcelDetails(kind)
+                ? request.RecipientName?.Trim()
+                : null,
+            RecipientPhone = FulfillmentRules.RequiresParcelDetails(kind)
+                ? request.RecipientPhone?.Trim()
+                : null,
             Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim(),
             Price = service.BasePrice
         };
@@ -73,7 +87,12 @@ public class ServiceRequestService : IServiceRequestService
             oldStatus: null,
             newStatus: ServiceRequestStatus.Pending,
             changedAt: now,
-            notes: "Request placed.");
+            notes: kind switch
+            {
+                FulfillmentKind.Ride => "Taxi ride requested.",
+                FulfillmentKind.Parcel => "Delivery requested.",
+                _ => "Request placed."
+            });
         await _db.SaveChangesAsync(cancellationToken);
 
         return await GetMappedAsync(entity.Id, includeCustomer: true, includeProvider: false, includeAddress: true, cancellationToken);
@@ -627,12 +646,17 @@ public class ServiceRequestService : IServiceRequestService
                 r.ServiceId,
                 ServiceName = r.Service.Name,
                 CategoryName = r.Service.Category.Name,
+                FulfillmentKind = r.Service.Category.FulfillmentKind,
                 r.Price,
                 r.Status,
                 r.RequestedDate,
                 r.ExpiresAt,
                 r.CompletedAt,
                 r.Notes,
+                r.PassengerCount,
+                r.ParcelDescription,
+                r.RecipientName,
+                r.RecipientPhone,
                 Address = r.Address == null
                     ? null
                     : new ServiceRequestAddressDto(
@@ -644,6 +668,17 @@ public class ServiceRequestService : IServiceRequestService
                         r.Address.PostalCode,
                         r.Address.Latitude,
                         r.Address.Longitude),
+                Destination = r.DestinationAddress == null
+                    ? null
+                    : new ServiceRequestAddressDto(
+                        r.DestinationAddress.Id,
+                        r.DestinationAddress.AddressLine1,
+                        r.DestinationAddress.AddressLine2,
+                        r.DestinationAddress.City,
+                        r.DestinationAddress.State,
+                        r.DestinationAddress.PostalCode,
+                        r.DestinationAddress.Latitude,
+                        r.DestinationAddress.Longitude),
                 Customer = new RequestContactDto(
                     r.Customer.Id,
                     r.Customer.FirstName,
@@ -706,6 +741,17 @@ public class ServiceRequestService : IServiceRequestService
                 .CountAsync(r => r.ProviderId == row.Provider.UserId, cancellationToken);
         }
 
+        var pickup = includeAddress ? row.Address : AreaOnly(row.Address);
+        var dropoff = includeAddress ? row.Destination : AreaOnly(row.Destination);
+        var trip = new TripDto(
+            row.FulfillmentKind,
+            pickup,
+            dropoff,
+            row.PassengerCount,
+            row.ParcelDescription,
+            includeAddress ? row.RecipientName : null,
+            includeAddress ? row.RecipientPhone : null);
+
         return new ServiceRequestDto(
             row.Id,
             row.ServiceId,
@@ -723,6 +769,77 @@ public class ServiceRequestService : IServiceRequestService
             providerRating,
             providerReviewCount,
             review,
-            timeline);
+            timeline,
+            row.FulfillmentKind,
+            trip,
+            includeAddress ? row.Destination : null,
+            row.PassengerCount,
+            row.ParcelDescription,
+            includeAddress ? row.RecipientName : null,
+            includeAddress ? row.RecipientPhone : null);
     }
+
+    private static void ValidateFulfillment(FulfillmentKind kind, PlaceServiceRequest request)
+    {
+        if (FulfillmentRules.RequiresDropoff(kind) && request.Destination is null)
+        {
+            throw new AppException(
+                kind == FulfillmentKind.Ride
+                    ? "A drop-off address is required for a taxi ride."
+                    : "A drop-off address is required for a delivery.");
+        }
+
+        if (FulfillmentRules.RequiresPassengerCount(kind) && !FulfillmentRules.IsValidPassengerCount(request.PassengerCount))
+        {
+            throw new AppException(
+                $"Passenger count must be between {FulfillmentRules.MinPassengers} and {FulfillmentRules.MaxPassengers}.");
+        }
+
+        if (FulfillmentRules.RequiresParcelDetails(kind))
+        {
+            if (string.IsNullOrWhiteSpace(request.ParcelDescription))
+            {
+                throw new AppException("Describe the parcel for this delivery.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.RecipientName) || string.IsNullOrWhiteSpace(request.RecipientPhone))
+            {
+                throw new AppException("Recipient name and phone are required for a delivery.");
+            }
+        }
+    }
+
+    private static CustomerAddress ToAddress(
+        Guid userId,
+        string line1,
+        string? line2,
+        string city,
+        string state,
+        string postalCode,
+        double? latitude,
+        double? longitude) =>
+        new()
+        {
+            UserId = userId,
+            AddressLine1 = line1.Trim(),
+            AddressLine2 = string.IsNullOrWhiteSpace(line2) ? null : line2.Trim(),
+            City = city.Trim(),
+            State = state.Trim(),
+            PostalCode = postalCode.Trim(),
+            Latitude = latitude,
+            Longitude = longitude,
+            IsDefault = false
+        };
+
+    private static ServiceRequestAddressDto? AreaOnly(ServiceRequestAddressDto? address) =>
+        address is null
+            ? null
+            : address with
+            {
+                AddressLine1 = string.Empty,
+                AddressLine2 = null,
+                PostalCode = string.Empty,
+                Latitude = null,
+                Longitude = null
+            };
 }

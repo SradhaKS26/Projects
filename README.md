@@ -99,6 +99,7 @@ Tracking, history, and reviews:
 - Customers rate a completed job once (1–5 stars, optional comment)
 - Requests splits open jobs from history and shows a status timeline
 - Provider average rating is cached on the profile and shown in Flutter and admin
+- Taxi (`Ride`) and Delivery (`Parcel`) use pickup/drop-off forms; other catalog types stay on-site for now
 
 See [docs/PHASE5.md](docs/PHASE5.md).
 

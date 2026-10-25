@@ -45,6 +45,19 @@
         </td>
       </ng-container>
 
+      <ng-container matColumnDef="fulfillment">
+        <th mat-header-cell *matHeaderCellDef>Fulfillment</th>
+        <td mat-cell *matCellDef="let row">
+          {{
+            row.fulfillmentKind === 'ride'
+              ? 'Taxi'
+              : row.fulfillmentKind === 'parcel'
+                ? 'Delivery'
+                : 'On-site'
+          }}
+        </td>
+      </ng-container>
+
       <ng-container matColumnDef="serviceCount">
         <th mat-header-cell *matHeaderCellDef>Services</th>
         <td mat-cell *matCellDef="let row">{{ row.serviceCount }}</td>

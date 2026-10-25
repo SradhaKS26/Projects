@@ -1,3 +1,5 @@
+export type FulfillmentKind = 'onSite' | 'ride' | 'parcel';
+
 export interface ServiceCategory {
   id: string;
   name: string;
@@ -7,6 +9,7 @@ export interface ServiceCategory {
   serviceCount: number;
   createdAt: string;
   updatedAt?: string | null;
+  fulfillmentKind: FulfillmentKind;
 }
 
 export interface ServiceCategoryPayload {
@@ -14,6 +17,7 @@ export interface ServiceCategoryPayload {
   description?: string | null;
   imageUrl?: string | null;
   isActive: boolean;
+  fulfillmentKind: FulfillmentKind;
 }
 
 export interface CatalogService {
@@ -27,6 +31,7 @@ export interface CatalogService {
   estimatedDurationMinutes?: number | null;
   createdAt: string;
   updatedAt?: string | null;
+  fulfillmentKind?: FulfillmentKind;
 }
 
 export interface CatalogServicePayload {

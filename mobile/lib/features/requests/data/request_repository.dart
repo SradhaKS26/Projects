@@ -21,6 +21,11 @@ class RequestRepository {
     required String state,
     required String postalCode,
     String? notes,
+    Map<String, dynamic>? destination,
+    int? passengerCount,
+    String? parcelDescription,
+    String? recipientName,
+    String? recipientPhone,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
       '/service-requests',
@@ -32,6 +37,11 @@ class RequestRepository {
         'state': state,
         'postalCode': postalCode,
         'notes': notes,
+        if (destination != null) 'destination': destination,
+        if (passengerCount != null) 'passengerCount': passengerCount,
+        if (parcelDescription != null) 'parcelDescription': parcelDescription,
+        if (recipientName != null) 'recipientName': recipientName,
+        if (recipientPhone != null) 'recipientPhone': recipientPhone,
       },
     );
     return ServiceJob.fromJson(_data(response));

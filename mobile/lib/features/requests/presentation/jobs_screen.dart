@@ -248,7 +248,15 @@ class _JobCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(job.notes!),
             ],
-            if (job.address != null) ...[
+            if (job.trip?.isPointToPoint == true) ...[
+              const SizedBox(height: 8),
+              Text(job.trip!.isRide ? 'Taxi · ${job.serviceName}' : 'Delivery · ${job.serviceName}'),
+              Text(job.trip!.routeLabel),
+              if (job.trip!.passengerCount != null) Text('${job.trip!.passengerCount} passenger(s)'),
+              if (job.trip!.parcelDescription != null) Text(job.trip!.parcelDescription!),
+              if (job.trip!.recipientName != null) Text('Recipient: ${job.trip!.recipientName}'),
+              if (job.trip!.recipientPhone != null) Text(job.trip!.recipientPhone!),
+            ] else if (job.address != null) ...[
               const SizedBox(height: 8),
               Text(job.address!.summary),
             ],

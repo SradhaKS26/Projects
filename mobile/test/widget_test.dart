@@ -9,6 +9,7 @@ import 'package:service_management_mobile/features/home/presentation/home_screen
 import 'package:service_management_mobile/features/notifications/data/notification_repository.dart';
 import 'package:service_management_mobile/features/requests/data/request_models.dart';
 import 'package:service_management_mobile/features/requests/data/request_repository.dart';
+import 'package:service_management_mobile/features/requests/presentation/create_request_screen.dart';
 import 'package:service_management_mobile/features/requests/presentation/jobs_screen.dart';
 import 'package:service_management_mobile/features/services/data/catalog_models.dart';
 import 'package:service_management_mobile/features/services/data/catalog_repository.dart';
@@ -38,7 +39,7 @@ void main() {
     expect(find.text('Application'), findsWidgets);
     expect(find.text('Profile'), findsWidgets);
     expect(find.text('Browse services'), findsOneWidget);
-    expect(find.textContaining('Incoming work is on Requests'), findsOneWidget);
+    expect(find.textContaining('Taxi and delivery jobs appear on Requests'), findsOneWidget);
   });
 
   testWidgets('customer does not see Application tab', (tester) async {
@@ -68,7 +69,30 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sedan'), findsOneWidget);
-    expect(find.text('Request'), findsOneWidget);
+    expect(find.text('Book ride'), findsOneWidget);
+  });
+
+  testWidgets('taxi request form asks for pickup and drop-off', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith((ref) async => _user(roles: const ['CommonUser'])),
+        ],
+        child: const MaterialApp(
+          home: CreateRequestScreen(
+            serviceId: 'svc1',
+            serviceName: 'Sedan',
+            price: 12,
+            fulfillmentKind: 'ride',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pickup'), findsOneWidget);
+    expect(find.text('Drop-off'), findsOneWidget);
+    expect(find.text('Book Sedan'), findsOneWidget);
   });
 
   testWidgets('customer can rate a completed job from history', (tester) async {
@@ -144,6 +168,7 @@ Widget _shell({required AuthUser user}) {
     overrides: [
       currentUserProvider.overrideWith((ref) async => user),
       notificationsProvider.overrideWith((ref) async => const []),
+      serviceCategoriesProvider.overrideWith((ref) async => const []),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -167,6 +192,7 @@ const _sedan = CatalogService(
   name: 'Sedan',
   basePrice: 10,
   isActive: true,
+  fulfillmentKind: 'ride',
 );
 
 ServiceJob _completedJob({JobReview? review}) {

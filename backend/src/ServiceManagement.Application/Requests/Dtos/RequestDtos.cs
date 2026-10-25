@@ -3,6 +3,15 @@ using ServiceManagement.Domain.Enums;
 
 namespace ServiceManagement.Application.Requests.Dtos;
 
+public record PlaceAddressRequest(
+    string AddressLine1,
+    string? AddressLine2,
+    string City,
+    string State,
+    string PostalCode,
+    double? Latitude = null,
+    double? Longitude = null);
+
 public record PlaceServiceRequest(
     Guid ServiceId,
     string AddressLine1,
@@ -12,7 +21,12 @@ public record PlaceServiceRequest(
     string PostalCode,
     double? Latitude,
     double? Longitude,
-    string? Notes);
+    string? Notes,
+    PlaceAddressRequest? Destination = null,
+    int? PassengerCount = null,
+    string? ParcelDescription = null,
+    string? RecipientName = null,
+    string? RecipientPhone = null);
 
 public record ServiceRequestAddressDto(
     Guid Id,
@@ -48,4 +62,20 @@ public record ServiceRequestDto(
     decimal? ProviderRating = null,
     int ProviderReviewCount = 0,
     ReviewDto? Review = null,
-    IReadOnlyList<RequestStatusEventDto>? Timeline = null);
+    IReadOnlyList<RequestStatusEventDto>? Timeline = null,
+    FulfillmentKind FulfillmentKind = FulfillmentKind.OnSite,
+    TripDto? Trip = null,
+    ServiceRequestAddressDto? Destination = null,
+    int? PassengerCount = null,
+    string? ParcelDescription = null,
+    string? RecipientName = null,
+    string? RecipientPhone = null);
+
+public record TripDto(
+    FulfillmentKind Kind,
+    ServiceRequestAddressDto? Pickup,
+    ServiceRequestAddressDto? Dropoff,
+    int? PassengerCount,
+    string? ParcelDescription,
+    string? RecipientName,
+    string? RecipientPhone);

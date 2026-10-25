@@ -35,7 +35,8 @@ public class ServiceCategoryService : IServiceCategoryService
                     c.IsActive,
                     c.Services.Count(s => s.IsActive),
                     c.CreatedAt,
-                    c.UpdatedAt))
+                    c.UpdatedAt,
+                    c.FulfillmentKind))
                 .ToListAsync(cancellationToken);
         }
 
@@ -48,7 +49,8 @@ public class ServiceCategoryService : IServiceCategoryService
                 c.IsActive,
                 c.Services.Count,
                 c.CreatedAt,
-                c.UpdatedAt))
+                c.UpdatedAt,
+                c.FulfillmentKind))
             .ToListAsync(cancellationToken);
     }
 
@@ -91,7 +93,8 @@ public class ServiceCategoryService : IServiceCategoryService
             Name = name,
             Description = request.Description?.Trim(),
             ImageUrl = request.ImageUrl?.Trim(),
-            IsActive = request.IsActive
+            IsActive = request.IsActive,
+            FulfillmentKind = request.FulfillmentKind
         };
 
         _db.ServiceCategories.Add(category);
@@ -116,6 +119,7 @@ public class ServiceCategoryService : IServiceCategoryService
         category.Description = request.Description?.Trim();
         category.ImageUrl = request.ImageUrl?.Trim();
         category.IsActive = request.IsActive;
+        category.FulfillmentKind = request.FulfillmentKind;
         category.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync(cancellationToken);
@@ -168,5 +172,6 @@ public class ServiceCategoryService : IServiceCategoryService
         category.IsActive,
         serviceCount,
         category.CreatedAt,
-        category.UpdatedAt);
+        category.UpdatedAt,
+        category.FulfillmentKind);
 }
