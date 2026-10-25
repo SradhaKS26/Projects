@@ -478,6 +478,46 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.UserNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ServiceRequestId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServiceRequestId");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("UserNotifications");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.Review", b =>
                 {
                     b.Property<Guid>("Id")
@@ -694,6 +734,9 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("RequestedDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -718,6 +761,8 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("ServiceId");
+
+                    b.HasIndex("Status", "ExpiresAt");
 
                     b.ToTable("ServiceRequests");
                 });
@@ -916,6 +961,24 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.Navigation("ProviderProfile");
 
                     b.Navigation("Service");
+                });
+
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.UserNotification", b =>
+                {
+                    b.HasOne("ServiceManagement.Domain.Entities.ServiceRequest", "ServiceRequest")
+                        .WithMany()
+                        .HasForeignKey("ServiceRequestId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("ServiceManagement.Domain.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ServiceRequest");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.RefreshToken", b =>

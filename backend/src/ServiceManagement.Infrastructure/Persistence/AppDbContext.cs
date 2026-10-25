@@ -25,6 +25,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ServiceRequestStatusHistory> ServiceRequestStatusHistories => Set<ServiceRequestStatusHistory>();
     public DbSet<ServiceRequestAttachment> ServiceRequestAttachments => Set<ServiceRequestAttachment>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -167,6 +168,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             entity.Property(x => x.Notes).HasMaxLength(4000);
             entity.Property(x => x.Price).HasPrecision(18, 2);
+            entity.HasIndex(x => new { x.Status, x.ExpiresAt });
             entity.HasOne(x => x.Customer)
                 .WithMany()
                 .HasForeignKey(x => x.CustomerId)
@@ -211,6 +213,21 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .WithMany()
                 .HasForeignKey(x => x.UploadedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<UserNotification>(entity =>
+        {
+            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Body).HasMaxLength(2000).IsRequired();
+            entity.HasIndex(x => new { x.UserId, x.IsRead });
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.ServiceRequest)
+                .WithMany()
+                .HasForeignKey(x => x.ServiceRequestId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Review>(entity =>

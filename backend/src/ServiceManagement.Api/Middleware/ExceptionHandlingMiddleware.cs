@@ -52,9 +52,9 @@ public class ExceptionHandlingMiddleware
                 break;
             default:
                 _logger.LogError(exception, "Unhandled exception");
-                if (_env.IsDevelopment())
+                if (_env.IsDevelopment() || _env.IsEnvironment("Testing"))
                 {
-                    message = exception.Message;
+                    message = exception.ToString();
                 }
                 break;
         }

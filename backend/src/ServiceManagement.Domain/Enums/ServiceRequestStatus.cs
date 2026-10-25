@@ -13,5 +13,6 @@ public enum ServiceRequestStatus
     Completed = 4,
     Cancelled = 5,
     Rejected = 6,
-    Failed = 7
+    Failed = 7,
+    Expired = 8
 }
