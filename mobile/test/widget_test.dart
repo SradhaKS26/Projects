@@ -7,6 +7,10 @@ import 'package:service_management_mobile/features/authentication/data/auth_mode
 import 'package:service_management_mobile/features/authentication/data/auth_repository.dart';
 import 'package:service_management_mobile/features/home/presentation/home_screen.dart';
 import 'package:service_management_mobile/features/notifications/data/notification_repository.dart';
+import 'package:service_management_mobile/features/requests/data/request_models.dart';
+import 'package:service_management_mobile/features/requests/data/request_repository.dart';
+import 'package:service_management_mobile/features/requests/presentation/create_request_screen.dart';
+import 'package:service_management_mobile/features/requests/presentation/jobs_screen.dart';
 import 'package:service_management_mobile/features/services/data/catalog_models.dart';
 import 'package:service_management_mobile/features/services/data/catalog_repository.dart';
 import 'package:service_management_mobile/features/services/presentation/services_screen.dart';
@@ -32,13 +36,13 @@ void main() {
     expect(find.text('Home'), findsWidgets);
     expect(find.text('Services'), findsWidgets);
     expect(find.text('Requests'), findsWidgets);
-    expect(find.text('Application'), findsWidgets);
+    expect(find.text('Offer services'), findsWidgets);
     expect(find.text('Profile'), findsWidgets);
     expect(find.text('Browse services'), findsOneWidget);
-    expect(find.textContaining('Incoming work is on Requests'), findsOneWidget);
+    expect(find.textContaining('Taxi and delivery jobs appear on Requests'), findsOneWidget);
   });
 
-  testWidgets('customer does not see Application tab', (tester) async {
+  testWidgets('customer can offer services from the same account', (tester) async {
     await tester.pumpWidget(
       _shell(
         user: _user(roles: const ['CommonUser']),
@@ -46,7 +50,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Application'), findsNothing);
+    expect(find.text('Offer services'), findsWidgets);
     expect(find.text('Requests'), findsWidgets);
   });
 
@@ -65,14 +69,72 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sedan'), findsOneWidget);
-    expect(find.text('Request'), findsOneWidget);
+    expect(find.text('Book ride'), findsOneWidget);
   });
 
-  testWidgets('provider does not place requests from the catalog', (tester) async {
+  testWidgets('taxi request form asks for pickup and drop-off', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          currentUserProvider.overrideWith((ref) async => _user(roles: const ['ServiceProvider'])),
+          currentUserProvider.overrideWith((ref) async => _user(roles: const ['CommonUser'])),
+        ],
+        child: const MaterialApp(
+          home: CreateRequestScreen(
+            serviceId: 'svc1',
+            serviceName: 'Sedan',
+            price: 12,
+            fulfillmentKind: 'ride',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Pickup'), findsOneWidget);
+    expect(find.text('Drop-off'), findsOneWidget);
+    expect(find.text('Book Sedan'), findsOneWidget);
+  });
+
+  testWidgets('customer can rate a completed job from history', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith((ref) async => _user(roles: const ['CommonUser'])),
+          myJobsProvider.overrideWith((ref) async => [_completedJob()]),
+        ],
+        child: const MaterialApp(home: JobsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Rate provider'), findsOneWidget);
+    expect(find.text('Track status'), findsNothing);
+  });
+
+  testWidgets('reviewed job shows stars instead of rate action', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith((ref) async => _user(roles: const ['CommonUser'])),
+          myJobsProvider.overrideWith((ref) async => [_completedJob(review: _review())]),
+        ],
+        child: const MaterialApp(home: JobsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rate provider'), findsNothing);
+    expect(find.text('On time.'), findsOneWidget);
+  });
+
+  testWidgets('a driver account that can also book sees Book ride', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith(
+            (ref) async => _user(roles: const ['CommonUser', 'ServiceProvider']),
+          ),
           servicesProvider('cat1').overrideWith((ref) async => [_sedan]),
         ],
         child: const MaterialApp(
@@ -83,7 +145,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sedan'), findsOneWidget);
-    expect(find.text('Request'), findsNothing);
+    expect(find.text('Book ride'), findsOneWidget);
   });
 }
 
@@ -108,6 +170,7 @@ Widget _shell({required AuthUser user}) {
     overrides: [
       currentUserProvider.overrideWith((ref) async => user),
       notificationsProvider.overrideWith((ref) async => const []),
+      serviceCategoriesProvider.overrideWith((ref) async => const []),
     ],
     child: MaterialApp.router(routerConfig: router),
   );
@@ -131,4 +194,28 @@ const _sedan = CatalogService(
   name: 'Sedan',
   basePrice: 10,
   isActive: true,
+  fulfillmentKind: 'ride',
 );
+
+ServiceJob _completedJob({JobReview? review}) {
+  return ServiceJob(
+    id: 'job-1',
+    serviceId: 'svc1',
+    serviceName: 'Sedan',
+    categoryName: 'Taxi',
+    price: 10,
+    status: 'completed',
+    requestedDate: DateTime(2026, 10, 25),
+    expiresAt: DateTime(2026, 10, 25),
+    review: review,
+  );
+}
+
+JobReview _review() {
+  return JobReview(
+    id: 'rev-1',
+    rating: 5,
+    comment: 'On time.',
+    createdAt: DateTime(2026, 10, 25),
+  );
+}

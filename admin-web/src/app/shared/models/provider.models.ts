@@ -17,6 +17,8 @@ export interface ProviderListItem {
   hasMissingRequiredDocuments: boolean;
   createdAt: string;
   reviewedAt?: string | null;
+  rating: number;
+  reviewCount: number;
 }
 
 export interface ProviderServiceItem {
@@ -62,6 +64,7 @@ export interface ProviderProfile {
   isActive: boolean;
   availabilityStatus: AvailabilityStatus;
   rating: number;
+  reviewCount: number;
   reviewReason?: string | null;
   reviewedAt?: string | null;
   createdAt: string;
@@ -81,6 +84,7 @@ export interface CategoryDocumentRequirement {
   sortOrder: number;
   createdAt: string;
   updatedAt?: string | null;
+  serviceIds: string[];
 }
 
 export interface DocumentRequirementPayload {
@@ -88,4 +92,5 @@ export interface DocumentRequirementPayload {
   description?: string | null;
   isRequired: boolean;
   sortOrder: number;
+  serviceIds: string[];
 }

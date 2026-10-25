@@ -20,6 +20,7 @@ class JobsScreen extends ConsumerWidget {
       ref.invalidate(myJobsProvider);
       ref.invalidate(inboxJobsProvider);
       ref.invalidate(assignedJobsProvider);
+      ref.invalidate(receivedReviewsProvider);
       ref.invalidate(notificationsProvider);
     }
 
@@ -37,6 +38,24 @@ class JobsScreen extends ConsumerWidget {
           );
         }
       }
+    }
+
+    Future<void> rate(ServiceJob job) async {
+      final draft = await showDialog<_ReviewDraft>(
+        context: context,
+        builder: (context) => _ReviewDialog(serviceName: job.serviceName),
+      );
+      if (draft == null) {
+        return;
+      }
+      await run(
+        () => ref.read(requestRepositoryProvider).review(
+              job.id,
+              rating: draft.rating,
+              comment: draft.comment,
+            ),
+        'Could not submit this review.',
+      );
     }
 
     return Scaffold(
@@ -65,8 +84,10 @@ class JobsScreen extends ConsumerWidget {
               Text('Your jobs', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               _JobSection(
-                asyncJobs: ref.watch(assignedJobsProvider),
-                emptyText: 'No accepted jobs yet.',
+                asyncJobs: ref.watch(assignedJobsProvider).whenData(
+                      (jobs) => jobs.where((job) => job.isOpen).toList(growable: false),
+                    ),
+                emptyText: 'No active jobs.',
                 onStart: (job) => run(
                   () => ref.read(requestRepositoryProvider).start(job.id),
                   'Could not start this job.',
@@ -81,17 +102,40 @@ class JobsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              Text('Job history', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              _JobSection(
+                asyncJobs: ref.watch(assignedJobsProvider).whenData(
+                      (jobs) => jobs.where((job) => !job.isOpen).toList(growable: false),
+                    ),
+                emptyText: 'Completed and cancelled jobs will appear here.',
+              ),
+              const SizedBox(height: 24),
             ],
             if (isCustomer) ...[
               Text('Your requests', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 12),
               _JobSection(
-                asyncJobs: ref.watch(myJobsProvider),
-                emptyText: 'You have not placed a request yet. Open Services and tap Request.',
+                asyncJobs: ref.watch(myJobsProvider).whenData(
+                      (jobs) => jobs.where((job) => job.isOpen).toList(growable: false),
+                    ),
+                emptyText: 'No active requests. Open Services and tap Request.',
                 onCancel: (job) => run(
                   () => ref.read(requestRepositoryProvider).cancel(job.id),
                   'This request can no longer be cancelled.',
                 ),
+              ),
+              const SizedBox(height: 24),
+              Text('History', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              const Text('Completed jobs can be rated once. Failed, cancelled, and expired requests stay here for reference.'),
+              const SizedBox(height: 12),
+              _JobSection(
+                asyncJobs: ref.watch(myJobsProvider).whenData(
+                      (jobs) => jobs.where((job) => !job.isOpen).toList(growable: false),
+                    ),
+                emptyText: 'No request history yet.',
+                onReview: rate,
               ),
             ],
             if (!isProvider && !isCustomer)
@@ -112,6 +156,7 @@ class _JobSection extends StatelessWidget {
     this.onStart,
     this.onComplete,
     this.onFail,
+    this.onReview,
   });
 
   final AsyncValue<List<ServiceJob>> asyncJobs;
@@ -121,6 +166,7 @@ class _JobSection extends StatelessWidget {
   final Future<void> Function(ServiceJob job)? onStart;
   final Future<void> Function(ServiceJob job)? onComplete;
   final Future<void> Function(ServiceJob job)? onFail;
+  final Future<void> Function(ServiceJob job)? onReview;
 
   @override
   Widget build(BuildContext context) {
@@ -151,6 +197,7 @@ class _JobSection extends StatelessWidget {
                 onStart: onStart,
                 onComplete: onComplete,
                 onFail: onFail,
+                onReview: onReview,
               ),
           ],
         );
@@ -167,6 +214,7 @@ class _JobCard extends StatelessWidget {
     this.onStart,
     this.onComplete,
     this.onFail,
+    this.onReview,
   });
 
   final ServiceJob job;
@@ -175,6 +223,7 @@ class _JobCard extends StatelessWidget {
   final Future<void> Function(ServiceJob job)? onStart;
   final Future<void> Function(ServiceJob job)? onComplete;
   final Future<void> Function(ServiceJob job)? onFail;
+  final Future<void> Function(ServiceJob job)? onReview;
 
   @override
   Widget build(BuildContext context) {
@@ -199,7 +248,15 @@ class _JobCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(job.notes!),
             ],
-            if (job.address != null) ...[
+            if (job.trip?.isPointToPoint == true) ...[
+              const SizedBox(height: 8),
+              Text(job.trip!.isRide ? 'Taxi · ${job.serviceName}' : 'Delivery · ${job.serviceName}'),
+              Text(job.trip!.routeLabel),
+              if (job.trip!.passengerCount != null) Text('${job.trip!.passengerCount} passenger(s)'),
+              if (job.trip!.parcelDescription != null) Text(job.trip!.parcelDescription!),
+              if (job.trip!.recipientName != null) Text('Recipient: ${job.trip!.recipientName}'),
+              if (job.trip!.recipientPhone != null) Text(job.trip!.recipientPhone!),
+            ] else if (job.address != null) ...[
               const SizedBox(height: 8),
               Text(job.address!.summary),
             ],
@@ -212,8 +269,39 @@ class _JobCard extends StatelessWidget {
             if (job.provider != null) ...[
               const SizedBox(height: 8),
               Text('Provider: ${job.provider!.displayName}'),
+              if (job.providerRating != null && job.providerReviewCount > 0)
+                Text(
+                  '${job.providerRating!.toStringAsFixed(1)} · ${job.providerReviewCount} review${job.providerReviewCount == 1 ? '' : 's'}',
+                ),
               if (job.provider!.email != null) Text(job.provider!.email!),
               if (job.provider!.phoneNumber != null) Text(job.provider!.phoneNumber!),
+            ],
+            if (job.timeline.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: const Text('Track status'),
+                children: [
+                  for (final event in job.timeline)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.check_circle_outline, size: 20),
+                      title: Text(event.label),
+                      subtitle: Text(
+                        [
+                          event.changedAt.toLocal().toString().split('.').first,
+                          if (event.notes != null) event.notes!,
+                        ].join(' · '),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+            if (job.review != null) ...[
+              const SizedBox(height: 8),
+              _StarRow(rating: job.review!.rating),
+              if (job.review!.comment != null) Text(job.review!.comment!),
             ],
             if (job.isPending && onAccept != null) ...[
               const SizedBox(height: 12),
@@ -235,9 +323,106 @@ class _JobCard extends StatelessWidget {
               const SizedBox(height: 12),
               OutlinedButton(onPressed: () => onCancel!(job), child: const Text('Cancel request')),
             ],
+            if (job.canReview && onReview != null) ...[
+              const SizedBox(height: 12),
+              FilledButton(onPressed: () => onReview!(job), child: const Text('Rate provider')),
+            ],
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StarRow extends StatelessWidget {
+  const _StarRow({required this.rating});
+
+  final int rating;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        for (var i = 1; i <= 5; i++)
+          Icon(
+            i <= rating ? Icons.star : Icons.star_border,
+            color: Colors.amber.shade700,
+            size: 20,
+          ),
+      ],
+    );
+  }
+}
+
+class _ReviewDraft {
+  const _ReviewDraft({required this.rating, this.comment});
+
+  final int rating;
+  final String? comment;
+}
+
+class _ReviewDialog extends StatefulWidget {
+  const _ReviewDialog({required this.serviceName});
+
+  final String serviceName;
+
+  @override
+  State<_ReviewDialog> createState() => _ReviewDialogState();
+}
+
+class _ReviewDialogState extends State<_ReviewDialog> {
+  var _rating = 5;
+  final _comment = TextEditingController();
+
+  @override
+  void dispose() {
+    _comment.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Rate ${widget.serviceName}'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 1; i <= 5; i++)
+                IconButton(
+                  onPressed: () => setState(() => _rating = i),
+                  icon: Icon(
+                    i <= _rating ? Icons.star : Icons.star_border,
+                    color: Colors.amber.shade700,
+                  ),
+                ),
+            ],
+          ),
+          TextField(
+            controller: _comment,
+            maxLines: 3,
+            decoration: const InputDecoration(
+              labelText: 'Comment (optional)',
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        FilledButton(
+          onPressed: () => Navigator.pop(
+            context,
+            _ReviewDraft(
+              rating: _rating,
+              comment: _comment.text.trim().isEmpty ? null : _comment.text.trim(),
+            ),
+          ),
+          child: const Text('Submit'),
+        ),
+      ],
     );
   }
 }

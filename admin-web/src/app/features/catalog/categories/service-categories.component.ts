@@ -45,7 +45,7 @@ export class ServiceCategoriesComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly includeInactive = signal(false);
   readonly displayedColumns = computed(() => {
-    const columns = ['name', 'description', 'serviceCount', 'status'];
+    const columns = ['name', 'description', 'fulfillment', 'serviceCount', 'status'];
     if (this.canManage()) {
       columns.push('actions');
     }

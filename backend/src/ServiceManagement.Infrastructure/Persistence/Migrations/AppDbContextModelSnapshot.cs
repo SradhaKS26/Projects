@@ -285,6 +285,21 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.ToTable("CategoryDocumentRequirements");
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.DocumentRequirementScope", b =>
+                {
+                    b.Property<Guid>("DocumentRequirementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("DocumentRequirementId", "ServiceId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("DocumentRequirementScopes");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CustomerAddress", b =>
                 {
                     b.Property<Guid>("Id")
@@ -628,6 +643,9 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<int>("FulfillmentKind")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)");
@@ -644,6 +662,8 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("FulfillmentKind");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -726,9 +746,27 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("DestinationAddressId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(4000)
                         .HasColumnType("character varying(4000)");
+
+                    b.Property<int?>("PassengerCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ParcelDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("RecipientName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("RecipientPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
@@ -759,6 +797,8 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.HasIndex("AssignedProviderId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("DestinationAddressId");
 
                     b.HasIndex("ServiceId");
 
@@ -912,6 +952,25 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.DocumentRequirementScope", b =>
+                {
+                    b.HasOne("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", "DocumentRequirement")
+                        .WithMany("ServiceScopes")
+                        .HasForeignKey("DocumentRequirementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServiceManagement.Domain.Entities.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentRequirement");
+
+                    b.Navigation("Service");
                 });
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CustomerAddress", b =>
@@ -1085,6 +1144,11 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("ServiceManagement.Domain.Entities.CustomerAddress", "DestinationAddress")
+                        .WithMany()
+                        .HasForeignKey("DestinationAddressId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("ServiceManagement.Domain.Entities.Service", "Service")
                         .WithMany("ServiceRequests")
                         .HasForeignKey("ServiceId")
@@ -1096,6 +1160,8 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.Navigation("AssignedProvider");
 
                     b.Navigation("Customer");
+
+                    b.Navigation("DestinationAddress");
 
                     b.Navigation("Service");
                 });
@@ -1155,6 +1221,8 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", b =>
                 {
                     b.Navigation("Documents");
+
+                    b.Navigation("ServiceScopes");
                 });
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.Permission", b =>

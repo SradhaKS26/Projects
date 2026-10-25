@@ -66,7 +66,8 @@ Provider onboarding and approval:
   from `IsActive` and availability
 - Document requirements are configurable per category
 - Admin review UI replaces the Providers placeholder
-- Unapproved providers use the same Home / Services / Requests / Profile tabs; onboarding status is the **Application** tab
+- Unapproved providers use the same Home / Services / Requests / Profile tabs; onboarding status is the **Offer services** tab
+- One user account can both book and provide: register as a person, then apply for taxi or delivery with the documents that service requires
 - Eligibility rule is in place for Phase 3B broadcast
 
 See [docs/PHASE3A.md](docs/PHASE3A.md).
@@ -91,6 +92,17 @@ Provider job workflow and in-app notifications:
 - No SignalR — pull to refresh
 
 See [docs/PHASE4.md](docs/PHASE4.md).
+
+## Phase 5 status
+
+Tracking, history, and reviews:
+
+- Customers rate a completed job once (1–5 stars, optional comment)
+- Requests splits open jobs from history and shows a status timeline
+- Provider average rating is cached on the profile and shown in Flutter and admin
+- Taxi (`Ride`) and Delivery (`Parcel`) use pickup/drop-off forms; other catalog types stay on-site for now
+
+See [docs/PHASE5.md](docs/PHASE5.md).
 
 ## Quick start
 

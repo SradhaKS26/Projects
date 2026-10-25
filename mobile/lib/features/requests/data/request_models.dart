@@ -56,6 +56,120 @@ class RequestAddress {
           .whereType<String>()
           .where((part) => part.isNotEmpty)
           .join(', ');
+
+  String get area =>
+      [city, state].where((part) => part.isNotEmpty).join(', ');
+}
+
+class JobTrip {
+  const JobTrip({
+    required this.kind,
+    this.pickup,
+    this.dropoff,
+    this.passengerCount,
+    this.parcelDescription,
+    this.recipientName,
+    this.recipientPhone,
+  });
+
+  factory JobTrip.fromJson(Map<String, dynamic> json) {
+    return JobTrip(
+      kind: json['kind'] as String? ?? 'onSite',
+      pickup: json['pickup'] is Map<String, dynamic>
+          ? RequestAddress.fromJson(json['pickup'] as Map<String, dynamic>)
+          : null,
+      dropoff: json['dropoff'] is Map<String, dynamic>
+          ? RequestAddress.fromJson(json['dropoff'] as Map<String, dynamic>)
+          : null,
+      passengerCount: json['passengerCount'] as int?,
+      parcelDescription: json['parcelDescription'] as String?,
+      recipientName: json['recipientName'] as String?,
+      recipientPhone: json['recipientPhone'] as String?,
+    );
+  }
+
+  final String kind;
+  final RequestAddress? pickup;
+  final RequestAddress? dropoff;
+  final int? passengerCount;
+  final String? parcelDescription;
+  final String? recipientName;
+  final String? recipientPhone;
+
+  bool get isRide => kind == 'ride';
+  bool get isParcel => kind == 'parcel';
+  bool get isPointToPoint => isRide || isParcel;
+
+  String get routeLabel {
+    final from = pickup?.summary.isNotEmpty == true ? pickup!.summary : pickup?.area ?? 'Pickup';
+    final to = dropoff?.summary.isNotEmpty == true ? dropoff!.summary : dropoff?.area ?? 'Drop-off';
+    return '$from → $to';
+  }
+}
+
+class JobReview {
+  const JobReview({
+    required this.id,
+    required this.rating,
+    this.comment,
+    required this.createdAt,
+    this.serviceName,
+    this.categoryName,
+  });
+
+  factory JobReview.fromJson(Map<String, dynamic> json) {
+    return JobReview(
+      id: json['id'] as String,
+      rating: json['rating'] as int? ?? 0,
+      comment: json['comment'] as String?,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      serviceName: json['serviceName'] as String?,
+      categoryName: json['categoryName'] as String?,
+    );
+  }
+
+  final String id;
+  final int rating;
+  final String? comment;
+  final DateTime createdAt;
+  final String? serviceName;
+  final String? categoryName;
+}
+
+class JobStatusEvent {
+  const JobStatusEvent({
+    this.oldStatus,
+    required this.newStatus,
+    required this.changedAt,
+    this.notes,
+  });
+
+  factory JobStatusEvent.fromJson(Map<String, dynamic> json) {
+    return JobStatusEvent(
+      oldStatus: json['oldStatus'] as String?,
+      newStatus: json['newStatus'] as String? ?? '',
+      changedAt: DateTime.tryParse(json['changedAt'] as String? ?? '') ?? DateTime.now(),
+      notes: json['notes'] as String?,
+    );
+  }
+
+  final String? oldStatus;
+  final String newStatus;
+  final DateTime changedAt;
+  final String? notes;
+
+  String get label {
+    return switch (newStatus) {
+      'pending' => 'Requested',
+      'accepted' => 'Accepted',
+      'inProgress' => 'Started',
+      'completed' => 'Completed',
+      'failed' => 'Could not complete',
+      'cancelled' => 'Cancelled',
+      'expired' => 'Expired',
+      _ => newStatus,
+    };
+  }
 }
 
 class ServiceJob {
@@ -73,6 +187,16 @@ class ServiceJob {
     this.address,
     this.customer,
     this.provider,
+    this.providerRating,
+    this.providerReviewCount = 0,
+    this.review,
+    this.timeline = const [],
+    this.fulfillmentKind = 'onSite',
+    this.trip,
+    this.passengerCount,
+    this.parcelDescription,
+    this.recipientName,
+    this.recipientPhone,
   });
 
   factory ServiceJob.fromJson(Map<String, dynamic> json) {
@@ -96,6 +220,25 @@ class ServiceJob {
       provider: json['provider'] is Map<String, dynamic>
           ? RequestContact.fromJson(json['provider'] as Map<String, dynamic>)
           : null,
+      providerRating: (json['providerRating'] as num?)?.toDouble(),
+      providerReviewCount: json['providerReviewCount'] as int? ?? 0,
+      review: json['review'] is Map<String, dynamic>
+          ? JobReview.fromJson(json['review'] as Map<String, dynamic>)
+          : null,
+      timeline: json['timeline'] is List
+          ? (json['timeline'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(JobStatusEvent.fromJson)
+              .toList(growable: false)
+          : const [],
+      fulfillmentKind: json['fulfillmentKind'] as String? ?? 'onSite',
+      trip: json['trip'] is Map<String, dynamic>
+          ? JobTrip.fromJson(json['trip'] as Map<String, dynamic>)
+          : null,
+      passengerCount: json['passengerCount'] as int?,
+      parcelDescription: json['parcelDescription'] as String?,
+      recipientName: json['recipientName'] as String?,
+      recipientPhone: json['recipientPhone'] as String?,
     );
   }
 
@@ -112,6 +255,19 @@ class ServiceJob {
   final RequestAddress? address;
   final RequestContact? customer;
   final RequestContact? provider;
+  final double? providerRating;
+  final int providerReviewCount;
+  final JobReview? review;
+  final List<JobStatusEvent> timeline;
+  final String fulfillmentKind;
+  final JobTrip? trip;
+  final int? passengerCount;
+  final String? parcelDescription;
+  final String? recipientName;
+  final String? recipientPhone;
+
+  bool get isRide => (trip?.isRide ?? fulfillmentKind == 'ride');
+  bool get isParcel => (trip?.isParcel ?? fulfillmentKind == 'parcel');
 
   bool get isPending => status == 'pending';
   bool get isAccepted => status == 'accepted';
@@ -120,6 +276,8 @@ class ServiceJob {
   bool get isFailed => status == 'failed';
   bool get isExpired => status == 'expired';
   bool get isCancelled => status == 'cancelled';
+  bool get isOpen => isPending || isAccepted || isInProgress;
+  bool get canReview => isCompleted && review == null;
 
   String get statusLabel {
     return switch (status) {

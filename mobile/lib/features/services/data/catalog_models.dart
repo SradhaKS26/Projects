@@ -6,6 +6,7 @@ class ServiceCategory {
     this.imageUrl,
     required this.isActive,
     required this.serviceCount,
+    this.fulfillmentKind = 'onSite',
   });
 
   factory ServiceCategory.fromJson(Map<String, dynamic> json) {
@@ -16,6 +17,7 @@ class ServiceCategory {
       imageUrl: json['imageUrl'] as String?,
       isActive: json['isActive'] as bool? ?? true,
       serviceCount: json['serviceCount'] as int? ?? 0,
+      fulfillmentKind: json['fulfillmentKind'] as String? ?? 'onSite',
     );
   }
 
@@ -25,6 +27,10 @@ class ServiceCategory {
   final String? imageUrl;
   final bool isActive;
   final int serviceCount;
+  final String fulfillmentKind;
+
+  bool get isRide => fulfillmentKind == 'ride';
+  bool get isParcel => fulfillmentKind == 'parcel';
 }
 
 class CatalogService {
@@ -37,6 +43,7 @@ class CatalogService {
     required this.basePrice,
     required this.isActive,
     this.estimatedDurationMinutes,
+    this.fulfillmentKind = 'onSite',
   });
 
   factory CatalogService.fromJson(Map<String, dynamic> json) {
@@ -49,6 +56,7 @@ class CatalogService {
       basePrice: (json['basePrice'] as num).toDouble(),
       isActive: json['isActive'] as bool? ?? true,
       estimatedDurationMinutes: json['estimatedDurationMinutes'] as int?,
+      fulfillmentKind: json['fulfillmentKind'] as String? ?? 'onSite',
     );
   }
 
@@ -60,4 +68,9 @@ class CatalogService {
   final double basePrice;
   final bool isActive;
   final int? estimatedDurationMinutes;
+  final String fulfillmentKind;
+
+  bool get isRide => fulfillmentKind == 'ride';
+  bool get isParcel => fulfillmentKind == 'parcel';
+  bool get isPointToPoint => isRide || isParcel;
 }

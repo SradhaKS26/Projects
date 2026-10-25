@@ -19,6 +19,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ServiceProviderProfile> ServiceProviderProfiles => Set<ServiceProviderProfile>();
     public DbSet<ProviderService> ProviderServices => Set<ProviderService>();
     public DbSet<CategoryDocumentRequirement> CategoryDocumentRequirements => Set<CategoryDocumentRequirement>();
+    public DbSet<DocumentRequirementScope> DocumentRequirementScopes => Set<DocumentRequirementScope>();
     public DbSet<ProviderDocument> ProviderDocuments => Set<ProviderDocument>();
     public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
     public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
@@ -79,6 +80,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(2000);
             entity.Property(x => x.ImageUrl).HasMaxLength(1024);
+            entity.HasIndex(x => x.FulfillmentKind);
         });
 
         builder.Entity<Service>(entity =>
@@ -134,6 +136,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
+        builder.Entity<DocumentRequirementScope>(entity =>
+        {
+            entity.HasKey(x => new { x.DocumentRequirementId, x.ServiceId });
+            entity.HasOne(x => x.DocumentRequirement)
+                .WithMany(x => x.ServiceScopes)
+                .HasForeignKey(x => x.DocumentRequirementId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Service)
+                .WithMany()
+                .HasForeignKey(x => x.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         builder.Entity<ProviderDocument>(entity =>
         {
             entity.Property(x => x.OriginalFileName).HasMaxLength(260).IsRequired();
@@ -168,6 +183,9 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
         {
             entity.Property(x => x.Notes).HasMaxLength(4000);
             entity.Property(x => x.Price).HasPrecision(18, 2);
+            entity.Property(x => x.ParcelDescription).HasMaxLength(500);
+            entity.Property(x => x.RecipientName).HasMaxLength(150);
+            entity.Property(x => x.RecipientPhone).HasMaxLength(30);
             entity.HasIndex(x => new { x.Status, x.ExpiresAt });
             entity.HasOne(x => x.Customer)
                 .WithMany()
@@ -184,6 +202,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.HasOne(x => x.Address)
                 .WithMany()
                 .HasForeignKey(x => x.AddressId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(x => x.DestinationAddress)
+                .WithMany()
+                .HasForeignKey(x => x.DestinationAddressId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

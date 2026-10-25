@@ -5,7 +5,9 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import {
+  FulfillmentKind,
   ServiceCategory,
   ServiceCategoryPayload,
 } from '../../../shared/models/catalog.models';
@@ -22,6 +24,7 @@ export interface CategoryDialogData {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
+    MatSelectModule,
     MatCheckboxModule,
     MatButtonModule,
   ],
@@ -40,6 +43,7 @@ export class CategoryDialogComponent {
     description: ['', [Validators.maxLength(2000)]],
     imageUrl: ['', [Validators.maxLength(1024)]],
     isActive: [true],
+    fulfillmentKind: ['onSite' as FulfillmentKind],
   });
 
   constructor(@Inject(MAT_DIALOG_DATA) data: CategoryDialogData) {
@@ -51,6 +55,7 @@ export class CategoryDialogComponent {
         description: data.category.description ?? '',
         imageUrl: data.category.imageUrl ?? '',
         isActive: data.category.isActive,
+        fulfillmentKind: data.category.fulfillmentKind ?? 'onSite',
       });
     }
   }
@@ -67,6 +72,7 @@ export class CategoryDialogComponent {
       description: value.description.trim() || null,
       imageUrl: value.imageUrl.trim() || null,
       isActive: value.isActive,
+      fulfillmentKind: value.fulfillmentKind,
     });
   }
 

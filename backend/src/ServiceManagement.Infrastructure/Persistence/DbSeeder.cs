@@ -73,6 +73,10 @@ public static class DbSeeder
             firstName: "John",
             lastName: "Provider",
             role: Roles.ServiceProvider);
+        if (provider is not null && !await userManager.IsInRoleAsync(provider, Roles.CommonUser))
+        {
+            await userManager.AddToRoleAsync(provider, Roles.CommonUser);
+        }
 
         if (provider is not null &&
             !await db.ServiceProviderProfiles.AnyAsync(p => p.UserId == provider.Id))
@@ -90,6 +94,7 @@ public static class DbSeeder
 
         await SeedCatalogAsync(db, logger);
         await SeedWorkedExampleAsync(db, logger);
+        await EnsureFulfillmentKindsAsync(db);
         await SeedDemoProviderApplicationAsync(db, provider, logger);
     }
 
@@ -119,7 +124,8 @@ public static class DbSeeder
             ]),
             ("Delivery", "Pickup and delivery errands",
             [
-                ("Local Package Delivery", 12.50m, 60, "Same-city pickup and drop-off."),
+                ("Walk / Nearby Delivery", 8.00m, 45, "On-foot or nearby drop-off. No vehicle licence required."),
+                ("Local Package Delivery", 12.50m, 60, "Same-city pickup and drop-off by vehicle."),
                 ("Grocery Pickup", 15.00m, 75, "Shopping and delivery of a grocery list.")
             ]),
             ("Repairs & Maintenance", "Household repair and upkeep",
@@ -136,7 +142,8 @@ public static class DbSeeder
             {
                 Name = categoryName,
                 Description = categoryDescription,
-                IsActive = true
+                IsActive = true,
+                FulfillmentKind = categoryName == "Delivery" ? FulfillmentKind.Parcel : FulfillmentKind.OnSite
             };
 
             foreach (var (name, price, minutes, description) in services)
@@ -176,7 +183,8 @@ public static class DbSeeder
             {
                 Name = "Taxi",
                 Description = "On-demand passenger trips. Vehicle types are services with their own base price.",
-                IsActive = true
+                IsActive = true,
+                FulfillmentKind = FulfillmentKind.Ride
             };
 
             taxi.Services.Add(new Service
@@ -227,6 +235,116 @@ public static class DbSeeder
                 [
                     ("Food Safety Certificate", "Proof of food-hygiene training required to prepare meals for customers.", 0)
                 ]);
+        }
+
+        var delivery = await db.ServiceCategories
+            .Include(c => c.Services)
+            .Include(c => c.DocumentRequirements)
+            .ThenInclude(r => r.ServiceScopes)
+            .FirstOrDefaultAsync(c => c.Name == "Delivery");
+        if (delivery is not null)
+        {
+            await EnsureServiceAsync(
+                db,
+                delivery,
+                "Walk / Nearby Delivery",
+                8.00m,
+                45,
+                "On-foot or nearby drop-off. No vehicle licence required.");
+
+            await EnsureDocumentRequirementsAsync(
+                db,
+                delivery.Id,
+                [
+                    ("Government ID", "Photo ID of the person who will pick up and drop off parcels.", 0)
+                ]);
+
+            var proof = await db.CategoryDocumentRequirements
+                .FirstOrDefaultAsync(r => r.CategoryId == delivery.Id && r.Name == "Proof of Address");
+            if (proof is not null && proof.IsRequired)
+            {
+                proof.IsRequired = false;
+                proof.UpdatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
+
+            await EnsureDocumentRequirementsAsync(
+                db,
+                delivery.Id,
+                [
+                    ("Driving Licence", "Required when delivering by vehicle. Walk / nearby delivery does not need this.", 1)
+                ]);
+
+            var vehicleServiceIds = delivery.Services
+                .Where(s => !s.Name.StartsWith("Walk", StringComparison.OrdinalIgnoreCase))
+                .Select(s => s.Id)
+                .ToList();
+            var licence = await db.CategoryDocumentRequirements
+                .Include(r => r.ServiceScopes)
+                .FirstOrDefaultAsync(r => r.CategoryId == delivery.Id && r.Name == "Driving Licence");
+            if (licence is not null && licence.ServiceScopes.Count == 0 && vehicleServiceIds.Count > 0)
+            {
+                foreach (var serviceId in vehicleServiceIds)
+                {
+                    licence.ServiceScopes.Add(new DocumentRequirementScope
+                    {
+                        DocumentRequirementId = licence.Id,
+                        ServiceId = serviceId
+                    });
+                }
+
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+
+    private static async Task EnsureServiceAsync(
+        AppDbContext db,
+        ServiceCategory category,
+        string name,
+        decimal price,
+        int minutes,
+        string description)
+    {
+        if (category.Services.Any(s => s.Name == name))
+        {
+            return;
+        }
+
+        category.Services.Add(new Service
+        {
+            CategoryId = category.Id,
+            Name = name,
+            Description = description,
+            BasePrice = price,
+            EstimatedDurationMinutes = minutes,
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task EnsureFulfillmentKindsAsync(AppDbContext db)
+    {
+        var changed = false;
+        var taxi = await db.ServiceCategories.FirstOrDefaultAsync(c => c.Name == "Taxi");
+        if (taxi is not null && taxi.FulfillmentKind != FulfillmentKind.Ride)
+        {
+            taxi.FulfillmentKind = FulfillmentKind.Ride;
+            taxi.UpdatedAt = DateTime.UtcNow;
+            changed = true;
+        }
+
+        var delivery = await db.ServiceCategories.FirstOrDefaultAsync(c => c.Name == "Delivery");
+        if (delivery is not null && delivery.FulfillmentKind != FulfillmentKind.Parcel)
+        {
+            delivery.FulfillmentKind = FulfillmentKind.Parcel;
+            delivery.UpdatedAt = DateTime.UtcNow;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            await db.SaveChangesAsync();
         }
     }
 
@@ -280,22 +398,21 @@ public static class DbSeeder
         var profile = await db.ServiceProviderProfiles
             .Include(p => p.ProviderServices)
             .FirstOrDefaultAsync(p => p.UserId == provider.Id);
-        if (profile is null || profile.ProviderServices.Count > 0)
+        if (profile is null)
         {
             return;
         }
 
+        var applied = profile.ProviderServices.Select(ps => ps.ServiceId).ToHashSet();
         var services = await db.Services
             .Include(s => s.Category)
-            .Where(s => s.Category.Name == "Taxi" && (s.Name == "Auto" || s.Name == "Sedan"))
+            .Where(s =>
+                (s.Category.Name == "Taxi" && (s.Name == "Auto" || s.Name == "Sedan"))
+                || (s.Category.Name == "Delivery" && s.Name == "Local Package Delivery"))
             .ToListAsync();
 
-        if (services.Count == 0)
-        {
-            return;
-        }
-
-        foreach (var service in services)
+        var added = false;
+        foreach (var service in services.Where(s => !applied.Contains(s.Id)))
         {
             profile.ProviderServices.Add(new ProviderService
             {
@@ -304,6 +421,12 @@ public static class DbSeeder
                 Status = ProviderServiceStatus.Pending,
                 AppliedAt = DateTime.UtcNow
             });
+            added = true;
+        }
+
+        if (!added)
+        {
+            return;
         }
 
         profile.Description ??= "Demo provider awaiting review.";
@@ -349,6 +472,11 @@ public static class DbSeeder
         }
 
         await userManager.AddToRoleAsync(user, role);
+        if (role == Roles.ServiceProvider)
+        {
+            await userManager.AddToRoleAsync(user, Roles.CommonUser);
+        }
+
         logger.LogInformation("Seeded {Role} account {Email}", role, email);
         return user;
     }

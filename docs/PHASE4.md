@@ -42,4 +42,5 @@ notification. Clients poll; there is still no SignalR.
 
 ## Not in this phase
 
-Live map tracking, reviews, and email/SMS/push (Phase 5).
+Live map tracking, email/SMS/push. Status-history tracking and customer
+reviews are Phase 5 — see [PHASE5.md](PHASE5.md).

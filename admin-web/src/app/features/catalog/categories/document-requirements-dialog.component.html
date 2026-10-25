@@ -1,9 +1,8 @@
 <h2 mat-dialog-title>Documents for {{ data.category.name }}</h2>
 <mat-dialog-content class="dialog-content">
   <p class="hint">
-    Providers who apply for any service in this category must upload the required documents.
-    A cook can need a food-safety certificate while a driver needs a licence — configure that here,
-    not in code.
+    Leave services unchecked to apply a document to every service in this category.
+    Check specific services for vehicle-only rules (a driving licence for vehicle delivery, not walk delivery).
   </p>
 
   @if (loading()) {
@@ -18,7 +17,14 @@
           @if (req.isRequired) {
             <span class="required">Required</span>
           }
-          <div class="meta">{{ req.description || 'No description' }}</div>
+          <div class="meta">
+            {{ req.description || 'No description' }}
+            @if (req.serviceIds?.length) {
+              · Selected services only
+            } @else {
+              · All services in this category
+            }
+          </div>
         </div>
         <div>
           <button mat-button type="button" (click)="edit(req)">Edit</button>
@@ -45,6 +51,17 @@
       <input matInput type="number" formControlName="sortOrder" />
     </mat-form-field>
     <mat-checkbox formControlName="isRequired">Required</mat-checkbox>
+    @if (services().length) {
+      <p class="hint">Applies to (leave empty for every service in the category)</p>
+      @for (service of services(); track service.id) {
+        <mat-checkbox
+          [checked]="form.controls.serviceIds.value.includes(service.id)"
+          (change)="toggleService(service.id, $event)"
+        >
+          {{ service.name }}
+        </mat-checkbox>
+      }
+    }
     <div class="form-actions">
       @if (editingId()) {
         <button mat-button type="button" (click)="cancelEdit()">Cancel edit</button>

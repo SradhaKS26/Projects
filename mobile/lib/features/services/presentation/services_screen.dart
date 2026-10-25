@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../authentication/data/auth_repository.dart';
+import '../data/catalog_models.dart';
 import '../data/catalog_repository.dart';
 
 class ServicesScreen extends ConsumerWidget {
@@ -27,14 +28,25 @@ class ServicesScreen extends ConsumerWidget {
             );
           }
 
+          final sorted = [...items]..sort((a, b) {
+              int rank(ServiceCategory category) {
+                if (category.isRide) return 0;
+                if (category.isParcel) return 1;
+                return 2;
+              }
+
+              final byKind = rank(a).compareTo(rank(b));
+              return byKind != 0 ? byKind : a.name.compareTo(b.name);
+            });
+
           return RefreshIndicator(
             onRefresh: () async => ref.invalidate(serviceCategoriesProvider),
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
-              itemCount: items.length,
+              itemCount: sorted.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final category = items[index];
+                final category = sorted[index];
 
                 return Card(
                   clipBehavior: Clip.antiAlias,
@@ -48,8 +60,12 @@ class ServicesScreen extends ConsumerWidget {
                     ),
                     title: Text(category.name),
                     subtitle: Text(
-                      category.description ??
-                          '${category.serviceCount} service(s)',
+                      category.isRide
+                          ? 'Book Auto, Sedan, or SUV. Pickup and drop-off.'
+                          : category.isParcel
+                              ? 'Send a package. Pickup and drop-off.'
+                              : category.description ??
+                                  '${category.serviceCount} service(s)',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -155,9 +171,13 @@ class CategoryServicesScreen extends ConsumerWidget {
                           const SizedBox(height: 12),
                           FilledButton(
                             onPressed: () => context.push(
-                              '/request/${service.id}?name=${Uri.encodeComponent(service.name)}&price=${service.basePrice}',
+                              '/request/${service.id}?name=${Uri.encodeComponent(service.name)}&price=${service.basePrice}&kind=${Uri.encodeComponent(service.fulfillmentKind)}',
                             ),
-                            child: const Text('Request'),
+                            child: Text(service.isRide
+                                ? 'Book ride'
+                                : service.isParcel
+                                    ? 'Send package'
+                                    : 'Request'),
                           ),
                         ],
                       ],

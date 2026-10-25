@@ -1,3 +1,5 @@
+using ServiceManagement.Domain.Enums;
+
 namespace ServiceManagement.Application.Catalog.Dtos;
 
 public record ServiceCategoryDto(
@@ -8,19 +10,22 @@ public record ServiceCategoryDto(
     bool IsActive,
     int ServiceCount,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    FulfillmentKind FulfillmentKind = FulfillmentKind.OnSite);
 
 public record CreateServiceCategoryRequest(
     string Name,
     string? Description,
     string? ImageUrl,
-    bool IsActive = true);
+    bool IsActive = true,
+    FulfillmentKind FulfillmentKind = FulfillmentKind.OnSite);
 
 public record UpdateServiceCategoryRequest(
     string Name,
     string? Description,
     string? ImageUrl,
-    bool IsActive);
+    bool IsActive,
+    FulfillmentKind FulfillmentKind = FulfillmentKind.OnSite);
 
 public record ServiceDto(
     Guid Id,
@@ -32,7 +37,8 @@ public record ServiceDto(
     bool IsActive,
     int? EstimatedDurationMinutes,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    FulfillmentKind FulfillmentKind = FulfillmentKind.OnSite);
 
 public record CreateServiceRequest(
     Guid CategoryId,

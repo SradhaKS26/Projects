@@ -36,7 +36,7 @@ Terminal alternatives: `Cancelled`, `Rejected`, `Failed`, `Expired`
 
 Transitions are gated by `ServiceRequestStateMachine`. Phase 3B exposes place,
 inbox, atomic accept, cancel, and expiry. Phase 4 adds start/complete/fail and
-in-app notifications. Phase 5 adds tracking and reviews.
+in-app notifications. Phase 5 adds status-history tracking and customer reviews.
 
 ## Clients
 

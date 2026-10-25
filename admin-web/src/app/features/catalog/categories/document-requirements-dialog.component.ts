@@ -2,13 +2,14 @@ import { Component, Inject, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { CatalogApiService } from '../../../core/catalog/catalog-api.service';
 import { ProviderApiService } from '../../../core/providers/provider-api.service';
-import { ServiceCategory } from '../../../shared/models/catalog.models';
+import { CatalogService, ServiceCategory } from '../../../shared/models/catalog.models';
 import { CategoryDocumentRequirement } from '../../../shared/models/provider.models';
 
 export interface DocumentRequirementsDialogData {
@@ -32,12 +33,14 @@ export interface DocumentRequirementsDialogData {
 })
 export class DocumentRequirementsDialogComponent implements OnInit {
   private readonly api = inject(ProviderApiService);
+  private readonly catalog = inject(CatalogApiService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly fb = inject(FormBuilder);
   readonly dialogRef = inject(MatDialogRef<DocumentRequirementsDialogComponent>);
   readonly data: DocumentRequirementsDialogData;
 
   readonly requirements = signal<CategoryDocumentRequirement[]>([]);
+  readonly services = signal<CatalogService[]>([]);
   readonly loading = signal(false);
   readonly editingId = signal<string | null>(null);
 
@@ -46,6 +49,7 @@ export class DocumentRequirementsDialogComponent implements OnInit {
     description: [''],
     isRequired: [true],
     sortOrder: [0],
+    serviceIds: this.fb.nonNullable.control<string[]>([]),
   });
 
   constructor(@Inject(MAT_DIALOG_DATA) data: DocumentRequirementsDialogData) {
@@ -58,6 +62,9 @@ export class DocumentRequirementsDialogComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
+    this.catalog.getServices({ categoryId: this.data.category.id, includeInactive: true }).subscribe({
+      next: (services) => this.services.set(services),
+    });
     this.api.getDocumentRequirements(this.data.category.id).subscribe({
       next: (requirements) => {
         this.requirements.set(requirements);
@@ -77,12 +84,20 @@ export class DocumentRequirementsDialogComponent implements OnInit {
       description: requirement.description ?? '',
       isRequired: requirement.isRequired,
       sortOrder: requirement.sortOrder,
+      serviceIds: requirement.serviceIds ?? [],
     });
+  }
+
+  toggleService(serviceId: string, event: MatCheckboxChange): void {
+    const current = this.form.controls.serviceIds.value;
+    this.form.controls.serviceIds.setValue(
+      event.checked ? [...current, serviceId] : current.filter((id) => id !== serviceId),
+    );
   }
 
   cancelEdit(): void {
     this.editingId.set(null);
-    this.form.reset({ name: '', description: '', isRequired: true, sortOrder: 0 });
+    this.form.reset({ name: '', description: '', isRequired: true, sortOrder: 0, serviceIds: [] });
   }
 
   save(): void {
@@ -97,6 +112,7 @@ export class DocumentRequirementsDialogComponent implements OnInit {
       description: value.description.trim() || null,
       isRequired: value.isRequired,
       sortOrder: Number(value.sortOrder) || 0,
+      serviceIds: value.serviceIds,
     };
 
     const editingId = this.editingId();

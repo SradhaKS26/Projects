@@ -52,9 +52,10 @@ public class AuthService : IAuthService
             throw new ConflictException("An account with this email already exists.");
         }
 
-        if (!await _roleManager.RoleExistsAsync(request.Role))
+        var wantsToProvide = string.Equals(request.Role, Roles.ServiceProvider, StringComparison.OrdinalIgnoreCase);
+        if (!await _roleManager.RoleExistsAsync(Roles.CommonUser))
         {
-            throw new AppException($"Role '{request.Role}' is not configured.");
+            throw new AppException("The CommonUser role is not configured.");
         }
 
         var user = new ApplicationUser
@@ -77,10 +78,11 @@ public class AuthService : IAuthService
             throw new AppException($"Registration failed: {string.Join(" ", errors)}");
         }
 
-        await _userManager.AddToRoleAsync(user, request.Role);
+        await _userManager.AddToRoleAsync(user, Roles.CommonUser);
 
-        if (request.Role == Roles.ServiceProvider)
+        if (wantsToProvide)
         {
+            await _userManager.AddToRoleAsync(user, Roles.ServiceProvider);
             _db.ServiceProviderProfiles.Add(new ServiceProviderProfile
             {
                 UserId = user.Id,

@@ -55,7 +55,8 @@ public class ServiceCatalogService : IServiceCatalogService
                 s.IsActive,
                 s.EstimatedDurationMinutes,
                 s.CreatedAt,
-                s.UpdatedAt))
+                s.UpdatedAt,
+                s.Category.FulfillmentKind))
             .ToListAsync(cancellationToken);
     }
 
@@ -85,7 +86,8 @@ public class ServiceCatalogService : IServiceCatalogService
                 s.IsActive,
                 s.EstimatedDurationMinutes,
                 s.CreatedAt,
-                s.UpdatedAt))
+                s.UpdatedAt,
+                s.Category.FulfillmentKind))
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException("Service not found.");
     }
@@ -114,7 +116,7 @@ public class ServiceCatalogService : IServiceCatalogService
         _db.Services.Add(service);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Map(service, category.Name);
+        return Map(service, category);
     }
 
     public async Task<ServiceDto> UpdateAsync(
@@ -143,7 +145,7 @@ public class ServiceCatalogService : IServiceCatalogService
 
         await _db.SaveChangesAsync(cancellationToken);
 
-        return Map(service, category.Name);
+        return Map(service, category);
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
@@ -186,15 +188,16 @@ public class ServiceCatalogService : IServiceCatalogService
         }
     }
 
-    private static ServiceDto Map(DomainService service, string categoryName) => new(
+    private static ServiceDto Map(DomainService service, ServiceManagement.Domain.Entities.ServiceCategory category) => new(
         service.Id,
         service.CategoryId,
-        categoryName,
+        category.Name,
         service.Name,
         service.Description,
         service.BasePrice,
         service.IsActive,
         service.EstimatedDurationMinutes,
         service.CreatedAt,
-        service.UpdatedAt);
+        service.UpdatedAt,
+        category.FulfillmentKind);
 }

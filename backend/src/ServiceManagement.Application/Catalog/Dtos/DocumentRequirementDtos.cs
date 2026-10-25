@@ -9,16 +9,19 @@ public record CategoryDocumentRequirementDto(
     bool IsRequired,
     int SortOrder,
     DateTime CreatedAt,
-    DateTime? UpdatedAt);
+    DateTime? UpdatedAt,
+    IReadOnlyList<Guid> ServiceIds);
 
 public record CreateDocumentRequirementRequest(
     string Name,
     string? Description,
     bool IsRequired = true,
-    int SortOrder = 0);
+    int SortOrder = 0,
+    IReadOnlyList<Guid>? ServiceIds = null);
 
 public record UpdateDocumentRequirementRequest(
     string Name,
     string? Description,
     bool IsRequired,
-    int SortOrder);
+    int SortOrder,
+    IReadOnlyList<Guid>? ServiceIds = null);

@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using ServiceManagement.Application.Common.Exceptions;
 using ServiceManagement.Application.Common.Storage;
 using ServiceManagement.Application.Providers.Dtos;
 using ServiceManagement.Application.Providers.Interfaces;
+using ServiceManagement.Domain.Constants;
 using ServiceManagement.Domain.Entities;
 using ServiceManagement.Domain.Enums;
 using ServiceManagement.Domain.Services;
@@ -20,22 +22,25 @@ public class ProviderOnboardingService : IProviderOnboardingService
     };
 
     private readonly AppDbContext _db;
+    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IFileStorage _storage;
     private readonly FileStorageOptions _storageOptions;
 
     public ProviderOnboardingService(
         AppDbContext db,
+        UserManager<ApplicationUser> userManager,
         IFileStorage storage,
         IOptions<FileStorageOptions> storageOptions)
     {
         _db = db;
+        _userManager = userManager;
         _storage = storage;
         _storageOptions = storageOptions.Value;
     }
 
     public async Task<ProviderProfileDto> GetMineAsync(Guid userId, CancellationToken cancellationToken = default)
     {
-        var profile = await LoadProfileByUserAsync(userId, cancellationToken);
+        var profile = await EnsureProfileAsync(userId, cancellationToken);
         return await MapAsync(profile, cancellationToken);
     }
 
@@ -44,7 +49,7 @@ public class ProviderOnboardingService : IProviderOnboardingService
         UpdateProviderApplicationRequest request,
         CancellationToken cancellationToken = default)
     {
-        var profile = await LoadProfileByUserAsync(userId, cancellationToken);
+        var profile = await EnsureProfileAsync(userId, cancellationToken);
 
         if (profile.ApprovalStatus == ProviderApprovalStatus.Suspended)
         {
@@ -116,6 +121,7 @@ public class ProviderOnboardingService : IProviderOnboardingService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        await GrantProviderCapabilityAsync(profile.User);
         return await GetMineAsync(userId, cancellationToken);
     }
 
@@ -148,7 +154,7 @@ public class ProviderOnboardingService : IProviderOnboardingService
         Stream content,
         CancellationToken cancellationToken = default)
     {
-        var profile = await LoadProfileByUserAsync(userId, cancellationToken);
+        var profile = await EnsureProfileAsync(userId, cancellationToken);
 
         if (profile.ApprovalStatus == ProviderApprovalStatus.Suspended)
         {
@@ -291,15 +297,33 @@ public class ProviderOnboardingService : IProviderOnboardingService
 
         var required = await _db.CategoryDocumentRequirements
             .AsNoTracking()
+            .Include(r => r.ServiceScopes)
             .Where(r => categoryIds.Contains(r.CategoryId) && r.IsRequired)
-            .Select(r => new { r.Id, r.CategoryId })
             .ToListAsync(cancellationToken);
+
+        var userIds = list.Select(p => p.UserId).ToList();
+        var reviewCounts = await _db.Reviews
+            .AsNoTracking()
+            .Where(r => userIds.Contains(r.ProviderId))
+            .GroupBy(r => r.ProviderId)
+            .Select(g => new { ProviderId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        var countByProvider = reviewCounts.ToDictionary(x => x.ProviderId, x => x.Count);
 
         return list.Select(p =>
         {
-            var appliedCategories = p.ProviderServices.Select(ps => ps.Service.CategoryId).ToHashSet();
+            var selected = p.ProviderServices
+                .Select(ps => (ps.ServiceId, ps.Service.CategoryId))
+                .ToList();
             var uploaded = p.Documents.Select(d => d.DocumentRequirementId).ToHashSet();
-            var missing = required.Count(r => appliedCategories.Contains(r.CategoryId) && !uploaded.Contains(r.Id));
+            var missing = required.Count(r =>
+                r.IsRequired
+                && DocumentRequirementRules.AppliesToSelection(
+                    r.CategoryId,
+                    r.ServiceScopes.Select(s => s.ServiceId).ToList(),
+                    selected)
+                && !uploaded.Contains(r.Id));
+            countByProvider.TryGetValue(p.UserId, out var reviewCount);
 
             return new ProviderListItemDto(
                 p.Id,
@@ -315,7 +339,9 @@ public class ProviderOnboardingService : IProviderOnboardingService
                 p.Documents.Count,
                 missing > 0,
                 p.CreatedAt,
-                p.ReviewedAt);
+                p.ReviewedAt,
+                p.Rating,
+                reviewCount);
         }).ToList();
     }
 
@@ -336,6 +362,13 @@ public class ProviderOnboardingService : IProviderOnboardingService
         if (profile.ApprovalStatus == ProviderApprovalStatus.Approved)
         {
             throw new ConflictException("This provider is already approved.");
+        }
+
+        var missing = await GetMissingRequirementsAsync(profile, cancellationToken);
+        if (missing.Count > 0)
+        {
+            throw new AppException(
+                "Required documents are still missing. Review the uploads before approving.");
         }
 
         var now = DateTime.UtcNow;
@@ -490,6 +523,7 @@ public class ProviderOnboardingService : IProviderOnboardingService
     private async Task<ProviderProfileDto> MapAsync(ServiceProviderProfile profile, CancellationToken cancellationToken)
     {
         var missing = await GetMissingRequirementsAsync(profile, cancellationToken);
+        var reviewCount = await _db.Reviews.CountAsync(r => r.ProviderId == profile.UserId, cancellationToken);
 
         return new ProviderProfileDto(
             profile.Id,
@@ -503,6 +537,7 @@ public class ProviderOnboardingService : IProviderOnboardingService
             profile.IsActive,
             profile.AvailabilityStatus,
             profile.Rating,
+            reviewCount,
             profile.ReviewReason,
             profile.ReviewedAt,
             profile.CreatedAt,
@@ -551,19 +586,70 @@ public class ProviderOnboardingService : IProviderOnboardingService
         }
 
         var uploaded = profile.Documents.Select(d => d.DocumentRequirementId).ToHashSet();
+        var selected = profile.ProviderServices
+            .Select(ps => (ps.ServiceId, ps.Service.CategoryId))
+            .ToList();
 
-        return await _db.CategoryDocumentRequirements
+        var requirements = await _db.CategoryDocumentRequirements
             .AsNoTracking()
+            .Include(r => r.Category)
+            .Include(r => r.ServiceScopes)
             .Where(r => categoryIds.Contains(r.CategoryId) && r.IsRequired && !uploaded.Contains(r.Id))
             .OrderBy(r => r.SortOrder)
             .ThenBy(r => r.Name)
+            .ToListAsync(cancellationToken);
+
+        return requirements
+            .Where(r => DocumentRequirementRules.AppliesToSelection(
+                r.CategoryId,
+                r.ServiceScopes.Select(s => s.ServiceId).ToList(),
+                selected))
             .Select(r => new MissingDocumentRequirementDto(
                 r.Id,
                 r.CategoryId,
                 r.Category.Name,
                 r.Name,
                 r.Description))
-            .ToListAsync(cancellationToken);
+            .ToList();
+    }
+
+    private async Task<ServiceProviderProfile> EnsureProfileAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var existing = await QueryProfiles()
+            .FirstOrDefaultAsync(p => p.UserId == userId, cancellationToken);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        if (!await _db.Users.AnyAsync(u => u.Id == userId, cancellationToken))
+        {
+            throw new NotFoundException("User not found.");
+        }
+
+        _db.ServiceProviderProfiles.Add(new ServiceProviderProfile
+        {
+            UserId = userId,
+            AvailabilityStatus = AvailabilityStatus.Unavailable,
+            IsActive = true,
+            ApprovalStatus = ProviderApprovalStatus.Pending
+        });
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return await LoadProfileByUserAsync(userId, cancellationToken);
+    }
+
+    private async Task GrantProviderCapabilityAsync(ApplicationUser user)
+    {
+        if (!await _userManager.IsInRoleAsync(user, Roles.CommonUser))
+        {
+            await _userManager.AddToRoleAsync(user, Roles.CommonUser);
+        }
+
+        if (!await _userManager.IsInRoleAsync(user, Roles.ServiceProvider))
+        {
+            await _userManager.AddToRoleAsync(user, Roles.ServiceProvider);
+        }
     }
 
     private void ValidateUpload(string originalFileName, string contentType, long fileSize)

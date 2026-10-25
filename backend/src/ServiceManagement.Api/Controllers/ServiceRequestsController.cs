@@ -4,6 +4,8 @@ using ServiceManagement.Api.Extensions;
 using ServiceManagement.Application.Common.Models;
 using ServiceManagement.Application.Requests.Dtos;
 using ServiceManagement.Application.Requests.Interfaces;
+using ServiceManagement.Application.Reviews.Dtos;
+using ServiceManagement.Application.Reviews.Interfaces;
 using ServiceManagement.Domain.Constants;
 
 namespace ServiceManagement.Api.Controllers;
@@ -14,10 +16,12 @@ namespace ServiceManagement.Api.Controllers;
 public class ServiceRequestsController : ControllerBase
 {
     private readonly IServiceRequestService _requests;
+    private readonly IReviewService _reviews;
 
-    public ServiceRequestsController(IServiceRequestService requests)
+    public ServiceRequestsController(IServiceRequestService requests, IReviewService reviews)
     {
         _requests = requests;
+        _reviews = reviews;
     }
 
     [HttpPost]
@@ -162,5 +166,22 @@ public class ServiceRequestsController : ControllerBase
 
         var failed = await _requests.FailAsync(User.GetUserId(), id, cancellationToken);
         return Ok(ApiResponse<ServiceRequestDto>.Ok(failed, "Job marked failed."));
+    }
+
+    [HttpPost("{id:guid}/review")]
+    public async Task<ActionResult<ApiResponse<ServiceRequestDto>>> Review(
+        Guid id,
+        [FromBody] SubmitReviewRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.IsInRole(Roles.CommonUser))
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse<ServiceRequestDto>.Fail("Only customers can review a completed job."));
+        }
+
+        var reviewed = await _reviews.SubmitAsync(User.GetUserId(), id, request, cancellationToken);
+        return Ok(ApiResponse<ServiceRequestDto>.Ok(reviewed, "Thanks for the review."));
     }
 }

@@ -1,3 +1,4 @@
+import { DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -21,6 +22,7 @@ import {
   selector: 'app-providers',
   standalone: true,
   imports: [
+    DecimalPipe,
     ReactiveFormsModule,
     RouterLink,
     MatCardModule,
@@ -47,6 +49,7 @@ export class ProvidersComponent implements OnInit {
     'email',
     'services',
     'approvalStatus',
+    'rating',
     'active',
     'documents',
     'actions',

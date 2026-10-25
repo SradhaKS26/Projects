@@ -23,6 +23,15 @@
       <input matInput formControlName="imageUrl" autocomplete="off" />
     </mat-form-field>
 
+    <mat-form-field appearance="outline">
+      <mat-label>Fulfillment</mat-label>
+      <mat-select formControlName="fulfillmentKind">
+        <mat-option value="onSite">On-site (one address)</mat-option>
+        <mat-option value="ride">Taxi (pickup and drop-off)</mat-option>
+        <mat-option value="parcel">Delivery (pickup, drop-off, recipient)</mat-option>
+      </mat-select>
+    </mat-form-field>
+
     <mat-checkbox formControlName="isActive">Active</mat-checkbox>
   </mat-dialog-content>
 
