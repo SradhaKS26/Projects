@@ -7,6 +7,9 @@ import 'package:service_management_mobile/features/authentication/data/auth_mode
 import 'package:service_management_mobile/features/authentication/data/auth_repository.dart';
 import 'package:service_management_mobile/features/home/presentation/home_screen.dart';
 import 'package:service_management_mobile/features/notifications/data/notification_repository.dart';
+import 'package:service_management_mobile/features/requests/data/request_models.dart';
+import 'package:service_management_mobile/features/requests/data/request_repository.dart';
+import 'package:service_management_mobile/features/requests/presentation/jobs_screen.dart';
 import 'package:service_management_mobile/features/services/data/catalog_models.dart';
 import 'package:service_management_mobile/features/services/data/catalog_repository.dart';
 import 'package:service_management_mobile/features/services/presentation/services_screen.dart';
@@ -66,6 +69,39 @@ void main() {
 
     expect(find.text('Sedan'), findsOneWidget);
     expect(find.text('Request'), findsOneWidget);
+  });
+
+  testWidgets('customer can rate a completed job from history', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith((ref) async => _user(roles: const ['CommonUser'])),
+          myJobsProvider.overrideWith((ref) async => [_completedJob()]),
+        ],
+        child: const MaterialApp(home: JobsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Rate provider'), findsOneWidget);
+    expect(find.text('Track status'), findsNothing);
+  });
+
+  testWidgets('reviewed job shows stars instead of rate action', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          currentUserProvider.overrideWith((ref) async => _user(roles: const ['CommonUser'])),
+          myJobsProvider.overrideWith((ref) async => [_completedJob(review: _review())]),
+        ],
+        child: const MaterialApp(home: JobsScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rate provider'), findsNothing);
+    expect(find.text('On time.'), findsOneWidget);
   });
 
   testWidgets('provider does not place requests from the catalog', (tester) async {
@@ -132,3 +168,26 @@ const _sedan = CatalogService(
   basePrice: 10,
   isActive: true,
 );
+
+ServiceJob _completedJob({JobReview? review}) {
+  return ServiceJob(
+    id: 'job-1',
+    serviceId: 'svc1',
+    serviceName: 'Sedan',
+    categoryName: 'Taxi',
+    price: 10,
+    status: 'completed',
+    requestedDate: DateTime(2026, 10, 25),
+    expiresAt: DateTime(2026, 10, 25),
+    review: review,
+  );
+}
+
+JobReview _review() {
+  return JobReview(
+    id: 'rev-1',
+    rating: 5,
+    comment: 'On time.',
+    createdAt: DateTime(2026, 10, 25),
+  );
+}

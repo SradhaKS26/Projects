@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
@@ -17,6 +17,7 @@ import { ReasonDialogComponent } from './reason-dialog.component';
   imports: [
     CurrencyPipe,
     DatePipe,
+    DecimalPipe,
     RouterLink,
     MatCardModule,
     MatButtonModule,

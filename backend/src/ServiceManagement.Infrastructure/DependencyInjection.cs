@@ -13,6 +13,7 @@ using ServiceManagement.Application.Common.Storage;
 using ServiceManagement.Application.Notifications.Interfaces;
 using ServiceManagement.Application.Providers.Interfaces;
 using ServiceManagement.Application.Requests.Interfaces;
+using ServiceManagement.Application.Reviews.Interfaces;
 using ServiceManagement.Domain.Services;
 using ServiceManagement.Application.Roles.Interfaces;
 using ServiceManagement.Application.Users.Interfaces;
@@ -104,6 +105,7 @@ public static class DependencyInjection
         services.AddScoped<IDocumentRequirementService, DocumentRequirementService>();
         services.AddScoped<IProviderOnboardingService, ProviderOnboardingService>();
         services.AddScoped<IServiceRequestService, ServiceRequestService>();
+        services.AddScoped<IReviewService, ReviewService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IFileStorage, LocalFileStorage>();

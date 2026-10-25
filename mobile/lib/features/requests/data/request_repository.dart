@@ -59,6 +59,26 @@ class RequestRepository {
     return ServiceJob.fromJson(_data(response));
   }
 
+  Future<ServiceJob> review(String id, {required int rating, String? comment}) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/service-requests/$id/review',
+      data: {
+        'rating': rating,
+        'comment': comment,
+      },
+    );
+    return ServiceJob.fromJson(_data(response));
+  }
+
+  Future<List<JobReview>> fetchReceivedReviews() async {
+    final response = await _dio.get<Map<String, dynamic>>('/reviews/received');
+    final data = response.data?['data'] as List<dynamic>? ?? const [];
+    return data
+        .cast<Map<String, dynamic>>()
+        .map(JobReview.fromJson)
+        .toList(growable: false);
+  }
+
   Future<ServiceJob> _postStatus(String id, String action) async {
     final response = await _dio.post<Map<String, dynamic>>('/service-requests/$id/$action');
     return ServiceJob.fromJson(_data(response));
@@ -92,4 +112,8 @@ final inboxJobsProvider = FutureProvider.autoDispose<List<ServiceJob>>((ref) {
 
 final assignedJobsProvider = FutureProvider.autoDispose<List<ServiceJob>>((ref) {
   return ref.watch(requestRepositoryProvider).fetchAssigned();
+});
+
+final receivedReviewsProvider = FutureProvider.autoDispose<List<JobReview>>((ref) {
+  return ref.watch(requestRepositoryProvider).fetchReceivedReviews();
 });

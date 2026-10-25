@@ -1,3 +1,4 @@
+using ServiceManagement.Application.Reviews.Dtos;
 using ServiceManagement.Domain.Enums;
 
 namespace ServiceManagement.Application.Requests.Dtos;
@@ -43,4 +44,8 @@ public record ServiceRequestDto(
     string? Notes,
     ServiceRequestAddressDto? Address,
     RequestContactDto? Customer,
-    RequestContactDto? Provider);
+    RequestContactDto? Provider,
+    decimal? ProviderRating = null,
+    int ProviderReviewCount = 0,
+    ReviewDto? Review = null,
+    IReadOnlyList<RequestStatusEventDto>? Timeline = null);

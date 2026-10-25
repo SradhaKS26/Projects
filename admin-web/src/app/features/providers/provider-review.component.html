@@ -50,6 +50,10 @@
           <p class="meta">
             Operationally active: {{ provider.isActive ? 'Yes' : 'No' }} · Availability:
             {{ provider.availabilityStatus }}
+            @if (provider.reviewCount) {
+              · Customer rating {{ provider.rating | number:'1.1-1' }}
+              ({{ provider.reviewCount }})
+            }
           </p>
           @if (provider.missingRequiredDocuments.length) {
             <p class="warn">

@@ -6,6 +6,8 @@ class ProviderProfile {
     required this.availabilityStatus,
     this.description,
     this.reviewReason,
+    this.rating = 0,
+    this.reviewCount = 0,
     required this.services,
     required this.documents,
     required this.missingRequiredDocuments,
@@ -19,6 +21,8 @@ class ProviderProfile {
       availabilityStatus: json['availabilityStatus'] as String? ?? 'unavailable',
       description: json['description'] as String?,
       reviewReason: json['reviewReason'] as String?,
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      reviewCount: json['reviewCount'] as int? ?? 0,
       services: _list(json['services'], ProviderServiceItem.fromJson),
       documents: _list(json['documents'], ProviderDocument.fromJson),
       missingRequiredDocuments: _list(
@@ -34,6 +38,8 @@ class ProviderProfile {
   final String availabilityStatus;
   final String? description;
   final String? reviewReason;
+  final double rating;
+  final int reviewCount;
   final List<ProviderServiceItem> services;
   final List<ProviderDocument> documents;
   final List<MissingDocumentRequirement> missingRequiredDocuments;

@@ -32,7 +32,7 @@ class HomeScreen extends ConsumerWidget {
               isProvider
                   ? 'Incoming work is on Requests. Accept, start, and complete jobs there. Approval status is on Application.'
                   : isCustomer
-                      ? 'Open Services, pick a type, and tap Request. Track status on the Requests tab. Updates appear below.'
+                      ? 'Open Services, pick a type, and tap Request. Track status and rate completed jobs on Requests. Updates appear below.'
                       : 'Browse the catalog. Customers request a service from Services. Providers use Requests and Application.',
             ),
             const SizedBox(height: 24),

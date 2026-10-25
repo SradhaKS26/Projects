@@ -92,6 +92,16 @@ Provider job workflow and in-app notifications:
 
 See [docs/PHASE4.md](docs/PHASE4.md).
 
+## Phase 5 status
+
+Tracking, history, and reviews:
+
+- Customers rate a completed job once (1–5 stars, optional comment)
+- Requests splits open jobs from history and shows a status timeline
+- Provider average rating is cached on the profile and shown in Flutter and admin
+
+See [docs/PHASE5.md](docs/PHASE5.md).
+
 ## Quick start
 
 ### 1. Database

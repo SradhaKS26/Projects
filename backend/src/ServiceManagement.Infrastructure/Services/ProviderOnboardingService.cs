@@ -295,11 +295,21 @@ public class ProviderOnboardingService : IProviderOnboardingService
             .Select(r => new { r.Id, r.CategoryId })
             .ToListAsync(cancellationToken);
 
+        var userIds = list.Select(p => p.UserId).ToList();
+        var reviewCounts = await _db.Reviews
+            .AsNoTracking()
+            .Where(r => userIds.Contains(r.ProviderId))
+            .GroupBy(r => r.ProviderId)
+            .Select(g => new { ProviderId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+        var countByProvider = reviewCounts.ToDictionary(x => x.ProviderId, x => x.Count);
+
         return list.Select(p =>
         {
             var appliedCategories = p.ProviderServices.Select(ps => ps.Service.CategoryId).ToHashSet();
             var uploaded = p.Documents.Select(d => d.DocumentRequirementId).ToHashSet();
             var missing = required.Count(r => appliedCategories.Contains(r.CategoryId) && !uploaded.Contains(r.Id));
+            countByProvider.TryGetValue(p.UserId, out var reviewCount);
 
             return new ProviderListItemDto(
                 p.Id,
@@ -315,7 +325,9 @@ public class ProviderOnboardingService : IProviderOnboardingService
                 p.Documents.Count,
                 missing > 0,
                 p.CreatedAt,
-                p.ReviewedAt);
+                p.ReviewedAt,
+                p.Rating,
+                reviewCount);
         }).ToList();
     }
 
@@ -490,6 +502,7 @@ public class ProviderOnboardingService : IProviderOnboardingService
     private async Task<ProviderProfileDto> MapAsync(ServiceProviderProfile profile, CancellationToken cancellationToken)
     {
         var missing = await GetMissingRequirementsAsync(profile, cancellationToken);
+        var reviewCount = await _db.Reviews.CountAsync(r => r.ProviderId == profile.UserId, cancellationToken);
 
         return new ProviderProfileDto(
             profile.Id,
@@ -503,6 +516,7 @@ public class ProviderOnboardingService : IProviderOnboardingService
             profile.IsActive,
             profile.AvailabilityStatus,
             profile.Rating,
+            reviewCount,
             profile.ReviewReason,
             profile.ReviewedAt,
             profile.CreatedAt,

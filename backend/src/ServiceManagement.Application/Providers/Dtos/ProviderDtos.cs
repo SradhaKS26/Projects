@@ -20,7 +20,9 @@ public record ProviderListItemDto(
     int DocumentCount,
     bool HasMissingRequiredDocuments,
     DateTime CreatedAt,
-    DateTime? ReviewedAt);
+    DateTime? ReviewedAt,
+    decimal Rating = 0,
+    int ReviewCount = 0);
 
 public record ProviderServiceItemDto(
     Guid ServiceId,
@@ -62,6 +64,7 @@ public record ProviderProfileDto(
     bool IsActive,
     AvailabilityStatus AvailabilityStatus,
     decimal Rating,
+    int ReviewCount,
     string? ReviewReason,
     DateTime? ReviewedAt,
     DateTime CreatedAt,

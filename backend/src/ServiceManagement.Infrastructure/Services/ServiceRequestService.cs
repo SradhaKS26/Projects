@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using ServiceManagement.Application.Common.Exceptions;
 using ServiceManagement.Application.Requests.Dtos;
 using ServiceManagement.Application.Requests.Interfaces;
+using ServiceManagement.Application.Reviews.Dtos;
 using ServiceManagement.Domain.Entities;
 using ServiceManagement.Domain.Enums;
 using ServiceManagement.Domain.Services;
@@ -388,7 +389,7 @@ public class ServiceRequestService : IServiceRequestService
             ServiceRequestStatus.Completed,
             "Provider completed the job.",
             "Your request was completed",
-            "The provider marked this job complete.",
+            "The provider marked this job complete. Rate them on Requests.",
             cancellationToken,
             after: (request, now) => request.CompletedAt = now);
 
@@ -663,6 +664,48 @@ public class ServiceRequestService : IServiceRequestService
         var contactsRevealed = row.Status is not ServiceRequestStatus.Pending
             and not ServiceRequestStatus.Expired;
 
+        IReadOnlyList<RequestStatusEventDto> timeline = [];
+        ReviewDto? review = null;
+        decimal? providerRating = null;
+        var providerReviewCount = 0;
+
+        if (includeAddress)
+        {
+            timeline = await _db.ServiceRequestStatusHistories
+                .AsNoTracking()
+                .Where(h => h.ServiceRequestId == id)
+                .OrderBy(h => h.ChangedAt)
+                .Select(h => new RequestStatusEventDto(h.OldStatus, h.NewStatus, h.ChangedAt, h.Notes))
+                .ToListAsync(cancellationToken);
+
+            var reviewRow = await _db.Reviews
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.ServiceRequestId == id, cancellationToken);
+            if (reviewRow is not null)
+            {
+                review = new ReviewDto(
+                    reviewRow.Id,
+                    reviewRow.ServiceRequestId,
+                    reviewRow.ProviderId,
+                    reviewRow.Rating,
+                    reviewRow.Comment,
+                    reviewRow.CreatedAt,
+                    row.ServiceName,
+                    row.CategoryName);
+            }
+        }
+
+        if (includeProvider && contactsRevealed && row.Provider is not null)
+        {
+            providerRating = await _db.ServiceProviderProfiles
+                .AsNoTracking()
+                .Where(p => p.UserId == row.Provider.UserId)
+                .Select(p => (decimal?)p.Rating)
+                .FirstOrDefaultAsync(cancellationToken);
+            providerReviewCount = await _db.Reviews
+                .CountAsync(r => r.ProviderId == row.Provider.UserId, cancellationToken);
+        }
+
         return new ServiceRequestDto(
             row.Id,
             row.ServiceId,
@@ -676,6 +719,10 @@ public class ServiceRequestService : IServiceRequestService
             row.Notes,
             includeAddress ? row.Address : null,
             includeCustomer && contactsRevealed ? row.Customer : null,
-            includeProvider && contactsRevealed ? row.Provider : null);
+            includeProvider && contactsRevealed ? row.Provider : null,
+            providerRating,
+            providerReviewCount,
+            review,
+            timeline);
     }
 }
