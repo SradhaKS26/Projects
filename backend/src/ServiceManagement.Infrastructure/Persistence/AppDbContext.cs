@@ -19,6 +19,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
     public DbSet<ServiceProviderProfile> ServiceProviderProfiles => Set<ServiceProviderProfile>();
     public DbSet<ProviderService> ProviderServices => Set<ProviderService>();
     public DbSet<CategoryDocumentRequirement> CategoryDocumentRequirements => Set<CategoryDocumentRequirement>();
+    public DbSet<DocumentRequirementScope> DocumentRequirementScopes => Set<DocumentRequirementScope>();
     public DbSet<ProviderDocument> ProviderDocuments => Set<ProviderDocument>();
     public DbSet<CustomerAddress> CustomerAddresses => Set<CustomerAddress>();
     public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
@@ -132,6 +133,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             entity.HasOne(x => x.Category)
                 .WithMany(x => x.DocumentRequirements)
                 .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        builder.Entity<DocumentRequirementScope>(entity =>
+        {
+            entity.HasKey(x => new { x.DocumentRequirementId, x.ServiceId });
+            entity.HasOne(x => x.DocumentRequirement)
+                .WithMany(x => x.ServiceScopes)
+                .HasForeignKey(x => x.DocumentRequirementId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Service)
+                .WithMany()
+                .HasForeignKey(x => x.ServiceId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

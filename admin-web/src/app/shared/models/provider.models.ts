@@ -84,6 +84,7 @@ export interface CategoryDocumentRequirement {
   sortOrder: number;
   createdAt: string;
   updatedAt?: string | null;
+  serviceIds: string[];
 }
 
 export interface DocumentRequirementPayload {
@@ -91,4 +92,5 @@ export interface DocumentRequirementPayload {
   description?: string | null;
   isRequired: boolean;
   sortOrder: number;
+  serviceIds: string[];
 }

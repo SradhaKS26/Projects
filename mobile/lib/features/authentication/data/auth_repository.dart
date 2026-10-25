@@ -46,7 +46,6 @@ class AuthRepository {
     required String lastName,
     required String email,
     required String password,
-    required String role,
   }) {
     return _authenticate(
       '/auth/register',
@@ -55,9 +54,17 @@ class AuthRepository {
         'lastName': lastName,
         'email': email,
         'password': password,
-        'role': role,
       },
     );
+  }
+
+  Future<AuthSession> refreshSession() async {
+    final refreshToken = await _tokenStorage.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      throw StateError('No refresh token.');
+    }
+
+    return _authenticate('/auth/refresh', {'refreshToken': refreshToken});
   }
 
   Future<AuthUser?> currentUser() async {

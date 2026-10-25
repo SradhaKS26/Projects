@@ -14,9 +14,9 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8).MaximumLength(128);
         RuleFor(x => x.PhoneNumber).MaximumLength(32).When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber));
         RuleFor(x => x.Role)
-            .NotEmpty()
-            .Must(r => r is Domain.Constants.Roles.CommonUser or Domain.Constants.Roles.ServiceProvider)
-            .WithMessage("Self-registration is limited to CommonUser or ServiceProvider.");
+            .Must(r => string.IsNullOrWhiteSpace(r)
+                || r is Domain.Constants.Roles.CommonUser or Domain.Constants.Roles.ServiceProvider)
+            .WithMessage("Self-registration creates a user account. Pass ServiceProvider only if they will also offer services.");
     }
 }
 

@@ -16,7 +16,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   var _register = false;
-  var _role = 'CommonUser';
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   var _loading = false;
@@ -48,7 +47,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               lastName: _lastNameController.text.trim(),
               email: _emailController.text.trim(),
               password: _passwordController.text,
-              role: _role,
             );
       } else {
         await ref.read(authRepositoryProvider).login(
@@ -95,7 +93,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _register ? 'Create an account' : 'Customers and providers',
+                      _register
+                          ? 'One account can book rides and also offer to drive or deliver.'
+                          : 'Book a taxi, send a package, or offer those services.',
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
@@ -131,25 +131,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       validator: (value) =>
                           value == null || value.length < 8 ? 'Min 8 characters' : null,
                     ),
-                    if (_register) ...[
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: _role,
-                        decoration: const InputDecoration(labelText: 'I am a'),
-                        items: const [
-                          DropdownMenuItem(value: 'CommonUser', child: Text('Customer')),
-                          DropdownMenuItem(
-                            value: 'ServiceProvider',
-                            child: Text('Provider'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _role = value);
-                          }
-                        },
-                      ),
-                    ],
                     if (_error != null) ...[
                       const SizedBox(height: 12),
                       Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),

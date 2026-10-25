@@ -130,6 +130,49 @@ public class TaxiDeliveryApiTests : IAsyncLifetime
         completed.RecipientPhone.Should().Be("5550199");
     }
 
+    [Fact]
+    public async Task Walk_delivery_does_not_need_a_licence_vehicle_delivery_does()
+    {
+        var admin = await AdminTokenAsync();
+        var category = await PostAsync<ServiceCategoryDto>(
+            admin,
+            "/api/service-categories",
+            new CreateServiceCategoryRequest(UniqueName("Delivery"), "Docs", null, true, FulfillmentKind.Parcel));
+        var walk = await PostAsync<ServiceDto>(
+            admin,
+            "/api/services",
+            new CreateServiceRequest(category.Id, UniqueName("Walk"), "On foot", 8m, 20));
+        var vehicle = await PostAsync<ServiceDto>(
+            admin,
+            "/api/services",
+            new CreateServiceRequest(category.Id, UniqueName("Van"), "By vehicle", 12m, 30));
+        var idCard = await PostAsync<CategoryDocumentRequirementDto>(
+            admin,
+            $"/api/service-categories/{category.Id}/document-requirements",
+            new CreateDocumentRequirementRequest("Government ID", null, true, 0));
+        var licence = await PostAsync<CategoryDocumentRequirementDto>(
+            admin,
+            $"/api/service-categories/{category.Id}/document-requirements",
+            new CreateDocumentRequirementRequest("Driving Licence", null, true, 1, [vehicle.Id]));
+
+        licence.ServiceIds.Should().Contain(vehicle.Id);
+        var token = await RegisterAsync("Casey", Roles.CommonUser);
+
+        var walkOnly = await SendAsync<ProviderProfileDto>(
+            token,
+            HttpMethod.Put,
+            "/api/providers/me/application",
+            new UpdateProviderApplicationRequest("Nearby only.", [walk.Id]));
+        walkOnly.MissingRequiredDocuments.Select(m => m.Id).Should().Equal(idCard.Id);
+
+        var withVehicle = await SendAsync<ProviderProfileDto>(
+            token,
+            HttpMethod.Put,
+            "/api/providers/me/application",
+            new UpdateProviderApplicationRequest("I also have a bike.", [walk.Id, vehicle.Id]));
+        withVehicle.MissingRequiredDocuments.Select(m => m.Id).Should().BeEquivalentTo([idCard.Id, licence.Id]);
+    }
+
     private static PlaceServiceRequest PickupOnly(Guid serviceId) => new(
         serviceId,
         "12 Market Street",

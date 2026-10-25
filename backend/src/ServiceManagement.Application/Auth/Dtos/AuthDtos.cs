@@ -6,7 +6,7 @@ public record RegisterRequest(
     string Email,
     string Password,
     string? PhoneNumber,
-    string Role);
+    string? Role = null);
 
 public record LoginRequest(string Email, string Password);
 

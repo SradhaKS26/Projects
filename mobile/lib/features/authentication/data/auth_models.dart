@@ -32,6 +32,7 @@ class AuthUser {
   bool get isProvider => roles.contains('ServiceProvider');
   bool get isCustomer => roles.contains('CommonUser');
   bool get isAdministrator => roles.contains('Administrator');
+  bool get canOfferServices => isCustomer || isProvider;
 
   String toJson() => jsonEncode({
         'id': id,

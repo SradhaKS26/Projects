@@ -112,14 +112,19 @@ public class RequestBroadcastApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Providers_cannot_place_requests()
+    public async Task Provider_accounts_can_also_place_requests()
     {
         var admin = await AdminTokenAsync();
         var (_, serviceId, _) = await SeedCatalogAsync(admin);
         var provider = await RegisterAsync("Pat", Roles.ServiceProvider);
 
-        var response = await SendRawAsync(provider, HttpMethod.Post, "/api/service-requests", Place(serviceId));
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var placed = await SendAsync<ServiceRequestDto>(
+            provider,
+            HttpMethod.Post,
+            "/api/service-requests",
+            Place(serviceId),
+            HttpStatusCode.Created);
+        placed.ServiceId.Should().Be(serviceId);
     }
 
     [Fact]

@@ -73,6 +73,10 @@ public static class DbSeeder
             firstName: "John",
             lastName: "Provider",
             role: Roles.ServiceProvider);
+        if (provider is not null && !await userManager.IsInRoleAsync(provider, Roles.CommonUser))
+        {
+            await userManager.AddToRoleAsync(provider, Roles.CommonUser);
+        }
 
         if (provider is not null &&
             !await db.ServiceProviderProfiles.AnyAsync(p => p.UserId == provider.Id))
@@ -120,7 +124,8 @@ public static class DbSeeder
             ]),
             ("Delivery", "Pickup and delivery errands",
             [
-                ("Local Package Delivery", 12.50m, 60, "Same-city pickup and drop-off."),
+                ("Walk / Nearby Delivery", 8.00m, 45, "On-foot or nearby drop-off. No vehicle licence required."),
+                ("Local Package Delivery", 12.50m, 60, "Same-city pickup and drop-off by vehicle."),
                 ("Grocery Pickup", 15.00m, 75, "Shopping and delivery of a grocery list.")
             ]),
             ("Repairs & Maintenance", "Household repair and upkeep",
@@ -232,17 +237,90 @@ public static class DbSeeder
                 ]);
         }
 
-        var delivery = await db.ServiceCategories.FirstOrDefaultAsync(c => c.Name == "Delivery");
+        var delivery = await db.ServiceCategories
+            .Include(c => c.Services)
+            .Include(c => c.DocumentRequirements)
+            .ThenInclude(r => r.ServiceScopes)
+            .FirstOrDefaultAsync(c => c.Name == "Delivery");
         if (delivery is not null)
         {
+            await EnsureServiceAsync(
+                db,
+                delivery,
+                "Walk / Nearby Delivery",
+                8.00m,
+                45,
+                "On-foot or nearby drop-off. No vehicle licence required.");
+
             await EnsureDocumentRequirementsAsync(
                 db,
                 delivery.Id,
                 [
-                    ("Government ID", "Photo ID of the person who will pick up and drop off parcels.", 0),
-                    ("Proof of Address", "Utility bill or bank statement for the operating city.", 1)
+                    ("Government ID", "Photo ID of the person who will pick up and drop off parcels.", 0)
                 ]);
+
+            var proof = await db.CategoryDocumentRequirements
+                .FirstOrDefaultAsync(r => r.CategoryId == delivery.Id && r.Name == "Proof of Address");
+            if (proof is not null && proof.IsRequired)
+            {
+                proof.IsRequired = false;
+                proof.UpdatedAt = DateTime.UtcNow;
+                await db.SaveChangesAsync();
+            }
+
+            await EnsureDocumentRequirementsAsync(
+                db,
+                delivery.Id,
+                [
+                    ("Driving Licence", "Required when delivering by vehicle. Walk / nearby delivery does not need this.", 1)
+                ]);
+
+            var vehicleServiceIds = delivery.Services
+                .Where(s => !s.Name.StartsWith("Walk", StringComparison.OrdinalIgnoreCase))
+                .Select(s => s.Id)
+                .ToList();
+            var licence = await db.CategoryDocumentRequirements
+                .Include(r => r.ServiceScopes)
+                .FirstOrDefaultAsync(r => r.CategoryId == delivery.Id && r.Name == "Driving Licence");
+            if (licence is not null && licence.ServiceScopes.Count == 0 && vehicleServiceIds.Count > 0)
+            {
+                foreach (var serviceId in vehicleServiceIds)
+                {
+                    licence.ServiceScopes.Add(new DocumentRequirementScope
+                    {
+                        DocumentRequirementId = licence.Id,
+                        ServiceId = serviceId
+                    });
+                }
+
+                await db.SaveChangesAsync();
+            }
         }
+    }
+
+    private static async Task EnsureServiceAsync(
+        AppDbContext db,
+        ServiceCategory category,
+        string name,
+        decimal price,
+        int minutes,
+        string description)
+    {
+        if (category.Services.Any(s => s.Name == name))
+        {
+            return;
+        }
+
+        category.Services.Add(new Service
+        {
+            CategoryId = category.Id,
+            Name = name,
+            Description = description,
+            BasePrice = price,
+            EstimatedDurationMinutes = minutes,
+            IsActive = true
+        });
+        await db.SaveChangesAsync();
     }
 
     private static async Task EnsureFulfillmentKindsAsync(AppDbContext db)
@@ -394,6 +472,11 @@ public static class DbSeeder
         }
 
         await userManager.AddToRoleAsync(user, role);
+        if (role == Roles.ServiceProvider)
+        {
+            await userManager.AddToRoleAsync(user, Roles.CommonUser);
+        }
+
         logger.LogInformation("Seeded {Role} account {Email}", role, email);
         return user;
     }

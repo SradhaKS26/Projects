@@ -66,7 +66,8 @@ Provider onboarding and approval:
   from `IsActive` and availability
 - Document requirements are configurable per category
 - Admin review UI replaces the Providers placeholder
-- Unapproved providers use the same Home / Services / Requests / Profile tabs; onboarding status is the **Application** tab
+- Unapproved providers use the same Home / Services / Requests / Profile tabs; onboarding status is the **Offer services** tab
+- One user account can both book and provide: register as a person, then apply for taxi or delivery with the documents that service requires
 - Eligibility rule is in place for Phase 3B broadcast
 
 See [docs/PHASE3A.md](docs/PHASE3A.md).

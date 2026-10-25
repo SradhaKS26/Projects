@@ -39,11 +39,13 @@ class HomeScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              isProvider
-                  ? 'Taxi and delivery jobs appear on Requests when you are approved, available, and registered for that service.'
-                  : isCustomer
-                      ? 'Book a taxi or send a package. Track the trip on Requests and rate the provider when it completes.'
-                      : 'Browse the catalog. Customers request a service from Services. Providers use Requests and Application.',
+              isCustomer && isProvider
+                  ? 'Book a taxi or send a package from here. Offer to drive or deliver from Offer services — admin verifies your documents first.'
+                  : isProvider
+                      ? 'Taxi and delivery jobs appear on Requests when you are approved, available, and registered for that service.'
+                      : isCustomer
+                          ? 'Book a taxi or send a package. You can also offer those services from Offer services after admin approval.'
+                          : 'Browse the catalog. One account can both book and provide.',
             ),
             const SizedBox(height: 24),
             if (isCustomer)

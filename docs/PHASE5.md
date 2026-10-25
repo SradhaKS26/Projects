@@ -56,6 +56,24 @@ This is the last slice of the original V1 marketplace loop:
 Provider list and review screens show the cached customer rating when any
 reviews exist.
 
+## One account, two capabilities
+
+A registered person is always a `CommonUser` and can book immediately. Offering
+taxi or delivery is extra: they open **Offer services**, pick the services, upload
+the documents those services require, and wait for admin approval. The same
+login then receives matching jobs. They can still book while they wait.
+
+`ServiceProvider` is added to the account when they submit that application.
+Refresh or sign in again so the JWT carries both roles.
+
+Document requirements can be limited to specific services. Seeded **Delivery**
+asks for Government ID for everyone. **Driving Licence** applies only to vehicle
+delivery (Local Package, Grocery), not **Walk / Nearby Delivery**. Taxi still
+needs licence, registration, and insurance for Auto, Sedan, and SUV.
+
+Admin cannot approve until the required uploads for the selected services are
+present.
+
 ## Taxi and delivery
 
 These two catalog kinds are the first to use a real trip form. Other categories

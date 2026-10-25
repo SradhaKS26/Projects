@@ -52,6 +52,20 @@ public class AuthApiTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Register_without_role_creates_a_user_who_can_book()
+    {
+        var email = $"user_{Guid.NewGuid():N}@example.com";
+        var register = new RegisterRequest("Sam", "Person", email, "Password!123", null);
+
+        var registerResponse = await _client.PostAsJsonAsync("/api/auth/register", register);
+        registerResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var body = await registerResponse.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>(JsonOptions);
+        body!.Data!.User.Roles.Should().Contain(Roles.CommonUser);
+        body.Data.User.Roles.Should().NotContain(Roles.ServiceProvider);
+    }
+
+    [Fact]
     public async Task Users_list_requires_ManageUsers_permission()
     {
         var email = $"noperm_{Guid.NewGuid():N}@example.com";

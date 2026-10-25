@@ -3,10 +3,10 @@ using ServiceManagement.Domain.Common;
 namespace ServiceManagement.Domain.Entities;
 
 /// <summary>
-/// A document type that providers must (or may) upload when they apply to serve
-/// any service in this category. Configured per category so a cook can be asked
-/// for a food-safety certificate while a driver is asked for a licence — without
-/// category-specific code.
+/// A document type that providers must (or may) upload when they apply. With no
+/// <see cref="ServiceScopes"/> it applies to every service in the category. With
+/// scopes it applies only to those services (vehicle delivery needs a licence;
+/// walk delivery does not).
 /// </summary>
 public class CategoryDocumentRequirement : BaseEntity
 {
@@ -19,4 +19,5 @@ public class CategoryDocumentRequirement : BaseEntity
     public int SortOrder { get; set; }
 
     public ICollection<ProviderDocument> Documents { get; set; } = [];
+    public ICollection<DocumentRequirementScope> ServiceScopes { get; set; } = [];
 }

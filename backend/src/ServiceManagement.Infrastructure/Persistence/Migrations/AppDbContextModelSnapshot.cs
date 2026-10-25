@@ -285,6 +285,21 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.ToTable("CategoryDocumentRequirements");
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.DocumentRequirementScope", b =>
+                {
+                    b.Property<Guid>("DocumentRequirementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("DocumentRequirementId", "ServiceId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("DocumentRequirementScopes");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CustomerAddress", b =>
                 {
                     b.Property<Guid>("Id")
@@ -939,6 +954,25 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("ServiceManagement.Domain.Entities.DocumentRequirementScope", b =>
+                {
+                    b.HasOne("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", "DocumentRequirement")
+                        .WithMany("ServiceScopes")
+                        .HasForeignKey("DocumentRequirementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ServiceManagement.Domain.Entities.Service", "Service")
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentRequirement");
+
+                    b.Navigation("Service");
+                });
+
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CustomerAddress", b =>
                 {
                     b.HasOne("ServiceManagement.Domain.Entities.ApplicationUser", "User")
@@ -1187,6 +1221,8 @@ namespace ServiceManagement.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("ServiceManagement.Domain.Entities.CategoryDocumentRequirement", b =>
                 {
                     b.Navigation("Documents");
+
+                    b.Navigation("ServiceScopes");
                 });
 
             modelBuilder.Entity("ServiceManagement.Domain.Entities.Permission", b =>

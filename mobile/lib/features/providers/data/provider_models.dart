@@ -125,6 +125,7 @@ class CategoryDocumentRequirement {
     required this.name,
     this.description,
     required this.isRequired,
+    this.serviceIds = const [],
   });
 
   factory CategoryDocumentRequirement.fromJson(Map<String, dynamic> json) {
@@ -135,6 +136,9 @@ class CategoryDocumentRequirement {
       name: json['name'] as String,
       description: json['description'] as String?,
       isRequired: json['isRequired'] as bool? ?? true,
+      serviceIds: (json['serviceIds'] as List<dynamic>? ?? const [])
+          .map((id) => id.toString())
+          .toList(growable: false),
     );
   }
 
@@ -144,6 +148,10 @@ class CategoryDocumentRequirement {
   final String name;
   final String? description;
   final bool isRequired;
+  final List<String> serviceIds;
+
+  bool appliesTo(Set<String> selectedServiceIds) =>
+      serviceIds.isEmpty || serviceIds.any(selectedServiceIds.contains);
 }
 
 List<T> _list<T>(

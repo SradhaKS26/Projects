@@ -36,13 +36,13 @@ void main() {
     expect(find.text('Home'), findsWidgets);
     expect(find.text('Services'), findsWidgets);
     expect(find.text('Requests'), findsWidgets);
-    expect(find.text('Application'), findsWidgets);
+    expect(find.text('Offer services'), findsWidgets);
     expect(find.text('Profile'), findsWidgets);
     expect(find.text('Browse services'), findsOneWidget);
     expect(find.textContaining('Taxi and delivery jobs appear on Requests'), findsOneWidget);
   });
 
-  testWidgets('customer does not see Application tab', (tester) async {
+  testWidgets('customer can offer services from the same account', (tester) async {
     await tester.pumpWidget(
       _shell(
         user: _user(roles: const ['CommonUser']),
@@ -50,7 +50,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Application'), findsNothing);
+    expect(find.text('Offer services'), findsWidgets);
     expect(find.text('Requests'), findsWidgets);
   });
 
@@ -128,11 +128,13 @@ void main() {
     expect(find.text('On time.'), findsOneWidget);
   });
 
-  testWidgets('provider does not place requests from the catalog', (tester) async {
+  testWidgets('a driver account that can also book sees Book ride', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          currentUserProvider.overrideWith((ref) async => _user(roles: const ['ServiceProvider'])),
+          currentUserProvider.overrideWith(
+            (ref) async => _user(roles: const ['CommonUser', 'ServiceProvider']),
+          ),
           servicesProvider('cat1').overrideWith((ref) async => [_sedan]),
         ],
         child: const MaterialApp(
@@ -143,7 +145,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sedan'), findsOneWidget);
-    expect(find.text('Request'), findsNothing);
+    expect(find.text('Book ride'), findsOneWidget);
   });
 }
 

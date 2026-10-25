@@ -110,6 +110,12 @@ class _ProviderApplicationScreenState
                 : _description.text.trim(),
             serviceIds: _selected.toList(),
           );
+      try {
+        await ref.read(authRepositoryProvider).refreshSession();
+        ref.invalidate(currentUserProvider);
+      } catch (_) {
+        // The application is saved; a later login will pick up the provider role.
+      }
       if (!mounted) return;
       setState(() {
         _profile = profile;
@@ -183,7 +189,7 @@ class _ProviderApplicationScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My application'),
+        title: const Text('Offer services'),
         actions: [
           IconButton(
             tooltip: 'Sign out',
@@ -219,7 +225,7 @@ class _ProviderApplicationScreenState
                                   ? profile.reviewCount == 0
                                       ? 'You can receive work once you are available. Incoming jobs appear on the Requests tab.'
                                       : 'Customer rating ${profile.rating.toStringAsFixed(1)} from ${profile.reviewCount} review${profile.reviewCount == 1 ? '' : 's'}.'
-                                  : 'You can browse the app while this application is reviewed. Requests become available after approval.',
+                                  : 'Upload the documents for the services you selected. Walk delivery does not need a driving licence; vehicle delivery and taxi do. You can still book as a customer while this is reviewed.',
                         ),
                       ),
                     ),
@@ -256,7 +262,7 @@ class _ProviderApplicationScreenState
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Services you can fulfill',
+                      'Services you can offer',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 8),
@@ -301,10 +307,10 @@ class _ProviderApplicationScreenState
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
                         child: Text(
-                          'Select services to see the documents that category requires.',
+                          'Select taxi or delivery services to see which documents apply. Walk / nearby delivery does not require a licence.',
                         ),
                       ),
-                    ..._requirements.map((req) {
+                    ..._requirements.where((req) => req.appliesTo(_selected)).map((req) {
                       final uploaded = profile.documents
                           .where((d) => d.documentRequirementId == req.id)
                           .firstOrNull;

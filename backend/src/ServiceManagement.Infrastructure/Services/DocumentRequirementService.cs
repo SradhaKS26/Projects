@@ -29,6 +29,7 @@ public class DocumentRequirementService : IDocumentRequirementService
 
         return await _db.CategoryDocumentRequirements
             .AsNoTracking()
+            .Include(r => r.ServiceScopes)
             .Where(r => r.CategoryId == categoryId)
             .OrderBy(r => r.SortOrder)
             .ThenBy(r => r.Name)
@@ -41,7 +42,8 @@ public class DocumentRequirementService : IDocumentRequirementService
                 r.IsRequired,
                 r.SortOrder,
                 r.CreatedAt,
-                r.UpdatedAt))
+                r.UpdatedAt,
+                r.ServiceScopes.Select(s => s.ServiceId).ToList()))
             .ToListAsync(cancellationToken);
     }
 
@@ -66,6 +68,7 @@ public class DocumentRequirementService : IDocumentRequirementService
             SortOrder = request.SortOrder
         };
 
+        await AssignScopesAsync(requirement, category.Id, request.ServiceIds, cancellationToken);
         _db.CategoryDocumentRequirements.Add(requirement);
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -79,6 +82,7 @@ public class DocumentRequirementService : IDocumentRequirementService
     {
         var requirement = await _db.CategoryDocumentRequirements
             .Include(r => r.Category)
+            .Include(r => r.ServiceScopes)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken)
             ?? throw new NotFoundException("Document requirement not found.");
 
@@ -90,6 +94,7 @@ public class DocumentRequirementService : IDocumentRequirementService
         requirement.IsRequired = request.IsRequired;
         requirement.SortOrder = request.SortOrder;
         requirement.UpdatedAt = DateTime.UtcNow;
+        await AssignScopesAsync(requirement, requirement.CategoryId, request.ServiceIds, cancellationToken);
 
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -131,6 +136,39 @@ public class DocumentRequirementService : IDocumentRequirementService
         }
     }
 
+    private async Task AssignScopesAsync(
+        CategoryDocumentRequirement requirement,
+        Guid categoryId,
+        IReadOnlyList<Guid>? serviceIds,
+        CancellationToken cancellationToken)
+    {
+        var desired = (serviceIds ?? [])
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (desired.Count > 0)
+        {
+            var validCount = await _db.Services.CountAsync(
+                s => s.CategoryId == categoryId && desired.Contains(s.Id),
+                cancellationToken);
+            if (validCount != desired.Count)
+            {
+                throw new AppException("Document requirement services must belong to this category.");
+            }
+        }
+
+        requirement.ServiceScopes.Clear();
+        foreach (var serviceId in desired)
+        {
+            requirement.ServiceScopes.Add(new DocumentRequirementScope
+            {
+                DocumentRequirement = requirement,
+                ServiceId = serviceId
+            });
+        }
+    }
+
     private static CategoryDocumentRequirementDto Map(CategoryDocumentRequirement requirement, string categoryName) =>
         new(
             requirement.Id,
@@ -141,5 +179,6 @@ public class DocumentRequirementService : IDocumentRequirementService
             requirement.IsRequired,
             requirement.SortOrder,
             requirement.CreatedAt,
-            requirement.UpdatedAt);
+            requirement.UpdatedAt,
+            requirement.ServiceScopes.Select(s => s.ServiceId).ToList());
 }

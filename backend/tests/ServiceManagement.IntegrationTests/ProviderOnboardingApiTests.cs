@@ -9,6 +9,7 @@ using ServiceManagement.Application.Catalog.Dtos;
 using ServiceManagement.Application.Common.Models;
 using ServiceManagement.Application.Providers.Dtos;
 using ServiceManagement.Application.Providers.Interfaces;
+using ServiceManagement.Application.Requests.Dtos;
 using ServiceManagement.Domain.Constants;
 using ServiceManagement.Domain.Enums;
 
@@ -43,11 +44,49 @@ public class ProviderOnboardingApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Customers_cannot_read_a_provider_profile()
+    public async Task Customer_can_open_an_empty_provider_application()
     {
         var customer = await RegisterCustomerAsync();
-        var response = await SendRawAsync(customer, HttpMethod.Get, "/api/providers/me");
-        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var profile = await GetAsync<ProviderProfileDto>(customer, "/api/providers/me");
+        profile.ApprovalStatus.Should().Be(ProviderApprovalStatus.Pending);
+        profile.Services.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Customer_can_apply_as_provider_and_still_place_requests()
+    {
+        var admin = await AdminTokenAsync();
+        var (_, serviceId, requirementId) = await SeedApplicatonCatalogAsync(admin);
+        var (token, email) = await RegisterCustomerWithEmailAsync();
+
+        var applied = await SendAsync<ProviderProfileDto>(
+            token,
+            HttpMethod.Put,
+            "/api/providers/me/application",
+            new UpdateProviderApplicationRequest("I also drive.", [serviceId]));
+        applied.Services.Should().ContainSingle(s => s.ServiceId == serviceId);
+
+        (await UploadPdfAsync(token, requirementId, "licence.pdf")).EnsureSuccessStatusCode();
+
+        var placed = await PostAsync<ServiceRequestDto>(
+            token,
+            "/api/service-requests",
+            new PlaceServiceRequest(
+                serviceId,
+                "12 Market Street",
+                null,
+                "Austin",
+                "TX",
+                "78701",
+                null,
+                null,
+                "Book as the same person."));
+        placed.ServiceId.Should().Be(serviceId);
+
+        var relogin = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest(email, "Password!123"));
+        var body = await relogin.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>(TestJson.Options);
+        body!.Data!.User.Roles.Should().Contain(Roles.CommonUser);
+        body.Data.User.Roles.Should().Contain(Roles.ServiceProvider);
     }
 
     [Fact]
@@ -64,6 +103,13 @@ public class ProviderOnboardingApiTests : IAsyncLifetime
             new UpdateProviderApplicationRequest("I can fulfill this service.", [serviceId]));
         saved.Services.Should().ContainSingle(s => s.ServiceId == serviceId && s.Status == ProviderServiceStatus.Pending);
         saved.MissingRequiredDocuments.Should().ContainSingle(m => m.Id == requirementId);
+
+        var tooSoon = await SendRawAsync(
+            admin,
+            HttpMethod.Post,
+            $"/api/providers/{saved.Id}/approve",
+            new ReviewProviderRequest(null));
+        tooSoon.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         var upload = await UploadPdfAsync(providerToken, requirementId, "licence.pdf");
         upload.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -286,17 +332,27 @@ public class ProviderOnboardingApiTests : IAsyncLifetime
             new RegisterRequest("Pat", "Provider", email, "Password!123", "5550100", Roles.ServiceProvider));
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>(TestJson.Options);
-        return body!.Data!.AccessToken;
+        body!.Data!.User.Roles.Should().Contain(Roles.CommonUser);
+        body.Data.User.Roles.Should().Contain(Roles.ServiceProvider);
+        return body.Data.AccessToken;
     }
 
     private async Task<string> RegisterCustomerAsync()
+    {
+        var (token, _) = await RegisterCustomerWithEmailAsync();
+        return token;
+    }
+
+    private async Task<(string Token, string Email)> RegisterCustomerWithEmailAsync()
     {
         var email = $"cust_{Guid.NewGuid():N}@example.com";
         var response = await _client.PostAsJsonAsync(
             "/api/auth/register",
             new RegisterRequest("Casey", "Customer", email, "Password!123", null, Roles.CommonUser));
         var body = await response.Content.ReadFromJsonAsync<ApiResponse<AuthResponse>>(TestJson.Options);
-        return body!.Data!.AccessToken;
+        body!.Data!.User.Roles.Should().Contain(Roles.CommonUser);
+        body.Data.User.Roles.Should().NotContain(Roles.ServiceProvider);
+        return (body.Data.AccessToken, email);
     }
 
     private async Task<HttpResponseMessage> UploadPdfAsync(string token, Guid requirementId, string fileName)
