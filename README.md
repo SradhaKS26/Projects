@@ -24,7 +24,20 @@ Clients never access the database directly. Business logic and authorization liv
 | `admin-web/` | Angular administrator portal |
 | `mobile/` | Flutter app (customers + providers) |
 | `docs/` | Architecture and phase notes |
+| `tools/spec-pdf/` | Renders the specification to PDF |
 | `docker-compose.yml` | Local PostgreSQL |
+
+## Specification
+
+[docs/SPECIFICATION.md](docs/SPECIFICATION.md) is the consolidated functional and
+technical specification: scope, actors, domain model, authorization model, numbered
+functional requirements, the full API surface, persistence, clients, configuration,
+and non-functional requirements. [docs/SPECIFICATION.pdf](docs/SPECIFICATION.pdf) is
+the same document as a print-ready PDF — see [tools/spec-pdf/](tools/spec-pdf/) to
+regenerate it.
+
+The per-phase notes below remain the record of *why* each decision was taken; the
+specification is the record of *what the system does*.
 
 ## Tech stack
 
