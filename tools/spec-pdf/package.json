@@ -1,0 +1,14 @@
+{
+  "name": "spec-pdf",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Renders docs/SPECIFICATION.md to a print-ready PDF.",
+  "scripts": {
+    "build": "node build.js ../../docs/SPECIFICATION.md ./out && node print.js ./out/cover.html ./out/cover.pdf cover && node print.js ./out/body.html ./out/body.pdf body && python3 merge.py ./out/cover.pdf ./out/body.pdf ../../docs/SPECIFICATION.pdf"
+  },
+  "dependencies": {
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "^9.2.0",
+    "puppeteer-core": "^24.0.0"
+  }
+}
